@@ -1,0 +1,13 @@
+name: ItemRemover
+version: '${project.version}'
+main: gg.sap.smp.itemremover.ItemRemover
+api-version: 1.19
+authors: [ "d2a <hi@d2a.io>" ]
+description: remove some annoying laggy items with ease
+website: https://qwer.tz
+
+commands:
+  trash:
+    description: "Opens a trash can"
+  devnull:
+    description: "Setup /dev/null"
