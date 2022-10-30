@@ -1,5 +1,6 @@
 package gg.sap.smp.itemremover;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -10,6 +11,8 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
@@ -19,14 +22,28 @@ import java.util.stream.Stream;
 
 public class DevNull implements CommandExecutor, Listener {
 
+    /**
+     * Contains which items shouldn't be added to a /dev/null
+     */
     private static final Set<Material> IGNORED_ITEMS = new HashSet<>(List.of(
             Material.AIR
     ));
 
     /**
-     * Contains which items should be deleted for a player when picking them up
+     * Contains which items should be deleted for a specific player when picking them up
      */
     private final Map<UUID, Set<Material>> materials = new HashMap<>();
+
+    /**
+     * How many can be recovered?
+     * Keep this a multiple of 9 (inventory size)
+     */
+    public static final int RECOVER_SIZE = 36;
+
+    /**
+     * Contains which items can be recovered for a specific player
+     */
+    private final Map<UUID, LimitedStack<ItemStack>> recover = new HashMap<>();
 
     /**
      * Checks if items should be deleted for the player with the given UUID.
@@ -46,11 +63,32 @@ public class DevNull implements CommandExecutor, Listener {
      * @param force Pass true to always remove the map entry for the player
      */
     private void cleanup(final UUID uuid, final boolean force) {
-        if (!this.materials.containsKey(uuid)) {
+        if (this.materials.containsKey(uuid) && (force || this.materials.get(uuid).size() <= 0)) {
+            this.materials.remove(uuid);
+        }
+    }
+
+    /**
+     * Checks if the list with recoverable items should be deleted for the player with the given UUID
+     *
+     * @param uuid UUID of the player
+     */
+    private void cleanupRecover(final UUID uuid) {
+        this.cleanupRecover(uuid, false);
+    }
+
+    /**
+     * Checks if the list with recoverable items should be deleted for the player with the given UUID
+     *
+     * @param uuid  UUID of the player
+     * @param force Pass true to always remove the recoverable items for the player
+     */
+    private void cleanupRecover(final UUID uuid, final boolean force) {
+        if (!this.recover.containsKey(uuid)) {
             return;
         }
-        if (force || this.materials.get(uuid).size() <= 0) {
-            this.materials.remove(uuid);
+        if (force || this.recover.get(uuid).size() <= 0) {
+            this.recover.remove(uuid);
         }
     }
 
@@ -83,6 +121,7 @@ public class DevNull implements CommandExecutor, Listener {
         // show help
         if (args.length == 0) {
             player.sendMessage("/devnull clear - clears all materials");
+            player.sendMessage("/devnull recover - recover deleted items");
             player.sendMessage("/devnull , - list materials");
             player.sendMessage("/devnull +COBBLESTONE,-STONE - adds cobblestone, removes stone");
             return true;
@@ -93,6 +132,28 @@ public class DevNull implements CommandExecutor, Listener {
         if (args.length == 1 && args[0].equalsIgnoreCase("clear")) {
             this.cleanup(player.getUniqueId(), true);
             player.sendMessage("ok: /dev/null cleared.");
+            return true;
+        }
+
+        // /devnull recover
+        // recover deleted items
+        if (args.length == 1 && args[0].equalsIgnoreCase("recover")) {
+            final LimitedStack<ItemStack> stack = this.recover.get(player.getUniqueId());
+            if (stack == null || stack.size() <= 0) {
+                player.sendMessage("warn: no items to recover");
+                return true;
+            }
+            final Inventory inventory = Bukkit.createInventory(null, RECOVER_SIZE);
+            int i = 0;
+            for (final ItemStack itemStack : stack) {
+                inventory.setItem(i++, itemStack);
+            }
+            player.openInventory(inventory);
+
+            // clear recoverable items
+            this.cleanupRecover(player.getUniqueId(), true);
+
+            player.sendMessage("ok: showing " + (i + 1) + " recovered items.");
             return true;
         }
 
@@ -146,6 +207,7 @@ public class DevNull implements CommandExecutor, Listener {
 
         // remove map entry if set is empty
         this.cleanup(player.getUniqueId());
+        this.cleanupRecover(player.getUniqueId());
 
         // send player summary of all items in /dev/null
         player.sendMessage("Now in /dev/null (" + set.size() + "): " + set.stream()
@@ -169,10 +231,22 @@ public class DevNull implements CommandExecutor, Listener {
         if (set == null) {
             return;
         }
-        if (set.contains(event.getItem().getItemStack().getType())) {
-            event.setCancelled(true);
-            event.getItem().remove();
+        final ItemStack stack = event.getItem().getItemStack();
+        if (!set.contains(stack.getType())) {
+            return;
         }
+        event.setCancelled(true);
+        event.getItem().remove();
+
+        // add to recover list
+        final LimitedStack<ItemStack> limitedStack;
+        if (this.recover.containsKey(player.getUniqueId())) {
+            limitedStack = this.recover.get(player.getUniqueId());
+        } else {
+            limitedStack = new LimitedStack<>(DevNull.RECOVER_SIZE);
+            this.recover.put(player.getUniqueId(), limitedStack);
+        }
+        limitedStack.push(stack);
     }
 
     /**
@@ -189,13 +263,14 @@ public class DevNull implements CommandExecutor, Listener {
     }
 
     /**
-     * Clear /dev/null on quit
+     * Clear /dev/null with recoverable items on quit
      *
      * @param event PlayerQuitEvent
      */
     @EventHandler
     public void onLeave(final PlayerQuitEvent event) {
         this.cleanup(event.getPlayer().getUniqueId(), true);
+        this.cleanupRecover(event.getPlayer().getUniqueId(), true);
     }
 
 }
