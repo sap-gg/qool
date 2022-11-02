@@ -1,5 +1,6 @@
-package gg.sap.smp.itemremover;
+package gg.sap.smp.itemremover.modules;
 
+import gg.sap.smp.itemremover.util.LimitedStack;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.command.Command;
@@ -9,7 +10,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityPickupItemEvent;
-import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -20,9 +20,9 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static gg.sap.smp.itemremover.Util.*;
+import static gg.sap.smp.itemremover.util.Util.*;
 
-public class DevNull implements CommandExecutor, Listener {
+public class DevNullModule implements CommandExecutor, Listener {
 
     /**
      * Contains which items shouldn't be added to a /dev/null
@@ -245,7 +245,7 @@ public class DevNull implements CommandExecutor, Listener {
         if (this.recover.containsKey(player.getUniqueId())) {
             limitedStack = this.recover.get(player.getUniqueId());
         } else {
-            limitedStack = new LimitedStack<>(DevNull.RECOVER_SIZE);
+            limitedStack = new LimitedStack<>(DevNullModule.RECOVER_SIZE);
             this.recover.put(player.getUniqueId(), limitedStack);
         }
         limitedStack.push(stack);

@@ -1,4 +1,4 @@
-package gg.sap.smp.itemremover;
+package gg.sap.smp.itemremover.util;
 
 import org.jetbrains.annotations.NotNull;
 

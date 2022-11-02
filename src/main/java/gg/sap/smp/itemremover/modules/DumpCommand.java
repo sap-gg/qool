@@ -1,6 +1,5 @@
-package gg.sap.smp.itemremover.commands;
+package gg.sap.smp.itemremover.modules;
 
-import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.block.Block;
@@ -20,7 +19,7 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
-import static gg.sap.smp.itemremover.Util.*;
+import static gg.sap.smp.itemremover.util.Util.*;
 
 public class DumpCommand implements CommandExecutor {
 

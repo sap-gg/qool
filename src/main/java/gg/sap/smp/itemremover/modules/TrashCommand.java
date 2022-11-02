@@ -1,4 +1,4 @@
-package gg.sap.smp.itemremover.commands;
+package gg.sap.smp.itemremover.modules;
 
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
@@ -7,8 +7,8 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
-import static gg.sap.smp.itemremover.Util.error;
-import static gg.sap.smp.itemremover.Util.light;
+import static gg.sap.smp.itemremover.util.Util.error;
+import static gg.sap.smp.itemremover.util.Util.light;
 
 public class TrashCommand implements CommandExecutor {
 
