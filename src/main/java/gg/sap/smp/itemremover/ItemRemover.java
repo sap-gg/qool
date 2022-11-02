@@ -1,5 +1,6 @@
 package gg.sap.smp.itemremover;
 
+import gg.sap.smp.itemremover.commands.DumpCommand;
 import gg.sap.smp.itemremover.commands.TrashCommand;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -14,6 +15,8 @@ public final class ItemRemover extends JavaPlugin {
         this.getServer().getPluginManager().registerEvents(devNull, this);
 
         Objects.requireNonNull(this.getCommand("trash")).setExecutor(new TrashCommand());
+
+        Objects.requireNonNull(this.getCommand("dump")).setExecutor(new DumpCommand());
     }
 
 }
