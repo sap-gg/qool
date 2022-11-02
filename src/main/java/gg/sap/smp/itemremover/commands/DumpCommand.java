@@ -1,6 +1,7 @@
 package gg.sap.smp.itemremover.commands;
 
 import org.bukkit.ChatColor;
+import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -12,7 +13,10 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
+import java.lang.annotation.Retention;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
@@ -59,7 +63,7 @@ public class DumpCommand implements CommandExecutor {
          * @param container Container to send items to
          * @return true if any item was transferred, otherwise false
          */
-        Result transfer(final Inventory inventory, final Container container) {
+        Result transfer(final Inventory inventory, final Container container, @Nullable final Set<Material> materials) {
             boolean hasItems = false;
 
             // indicates if the container at face {face} has received any items
@@ -71,6 +75,18 @@ public class DumpCommand implements CommandExecutor {
                 final ItemStack stack = inventory.getItem(i);
                 if (stack == null) {
                     continue;
+                }
+
+                if (materials != null && !materials.isEmpty()) {
+                    // AIR(special): only transfer matching items
+                    if (materials.contains(Material.AIR)) {
+                        // check if item in inventory
+                        if (!container.getInventory().containsAtLeast(stack, 1)) {
+                            continue;
+                        }
+                    } else if (!materials.contains(stack.getType())) {
+                        continue;
+                    }
                 }
 
                 // mark inventory to have any items
@@ -114,7 +130,7 @@ public class DumpCommand implements CommandExecutor {
 
         // required syntax:
         // /dump <INVENTORY,HOTBAR,...> <UP,DOWN,NORTH,...>
-        if (args.length != 2) {
+        if (args.length != 2 && args.length != 3) {
             player.sendMessage(error(String.format("syntax: /dump &7{type:}&r <%s> &7{direction:}&r <%s>",
                     enumJoin(Type.values(), ","), enumJoin(BlockFace.values(), ",", 3) + "...")
             ));
@@ -153,6 +169,18 @@ public class DumpCommand implements CommandExecutor {
             return true;
         }
 
+        final Set<Material> materials = new HashSet<>();
+        if (args.length == 3) {
+            for (final String arg : args[2].split(",")) {
+                final Material material = enumGet(Material.values(), arg);
+                if (material == null) {
+                    player.sendMessage(error("material '&7" + arg + "&r' not found."));
+                    return true;
+                }
+                materials.add(material);
+            }
+        }
+
         final Inventory inventory = player.getInventory();
         for (final BlockFace face : orientations) {
             final Block block = player.getLocation().getBlock().getRelative(face);
@@ -162,7 +190,7 @@ public class DumpCommand implements CommandExecutor {
             }
             for (final Type type : types) {
                 // do transfer and show particles
-                switch (type.transfer(inventory, container)) {
+                switch (type.transfer(inventory, container, materials)) {
                     case MOVED_SOME -> {
                         this.particlify(block, Particle.VILLAGER_HAPPY);
                         player.sendMessage(light("debug", "sent at least 1 item to " + face));
