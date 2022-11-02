@@ -15,7 +15,6 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.lang.annotation.Retention;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -39,8 +38,7 @@ public class DumpCommand implements CommandExecutor {
      */
     enum Type {
         INVENTORY(9, 35),
-        HOTBAR(0, 8),
-        ARMOR(100, 103);
+        HOTBAR(0, 8);
 
         public final int start;
         public final int end;
