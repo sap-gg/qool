@@ -20,6 +20,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static gg.sap.smp.itemremover.Util.*;
+
 public class DevNull implements CommandExecutor, Listener {
 
     /**
@@ -113,7 +115,7 @@ public class DevNull implements CommandExecutor, Listener {
     ) {
         // only players should be able to use the /dev/null feature
         if (!(sender instanceof Player player)) {
-            sender.sendMessage("This command is intended for players.");
+            error(sender, "this command is only intended for players.");
             return true;
         }
 
@@ -131,7 +133,7 @@ public class DevNull implements CommandExecutor, Listener {
         // clears all items in devnull
         if (args.length == 1 && args[0].equalsIgnoreCase("clear")) {
             this.cleanup(player.getUniqueId(), true);
-            player.sendMessage("ok: /dev/null cleared.");
+            light(player, "ok", "/dev/null cleared.");
             return true;
         }
 
@@ -140,7 +142,7 @@ public class DevNull implements CommandExecutor, Listener {
         if (args.length == 1 && args[0].equalsIgnoreCase("recover")) {
             final LimitedStack<ItemStack> stack = this.recover.get(player.getUniqueId());
             if (stack == null || stack.size() <= 0) {
-                player.sendMessage("warn: no items to recover");
+                warn(player, "no items to recover");
                 return true;
             }
             final Inventory inventory = Bukkit.createInventory(null, RECOVER_SIZE);
@@ -153,7 +155,7 @@ public class DevNull implements CommandExecutor, Listener {
             // clear recoverable items
             this.cleanupRecover(player.getUniqueId(), true);
 
-            player.sendMessage("ok: showing " + (i + 1) + " recovered items.");
+            light(player, "ok", "showing &d" + (i + 1) + "&r recovered items.");
             return true;
         }
 
@@ -179,19 +181,19 @@ public class DevNull implements CommandExecutor, Listener {
             } else if (arg.startsWith("-")) {
                 add = false;
             } else {
-                player.sendMessage("error: '+' or '-' prefix required (+" + arg + " or -" + arg + ")");
+                error(player, "'+' or '-' prefix required (+" + arg + " or -" + arg + ")");
                 return true;
             }
 
             // get material from name
             final Material material = Material.getMaterial(arg.substring(1));
             if (material == null) {
-                player.sendMessage("error: Material " + arg.substring(1) + " not found.");
+                error(player, "material '&7" + arg.substring(1) + "&r' not found.");
                 return true;
             }
 
             if (IGNORED_ITEMS.contains(material)) {
-                player.sendMessage("warn: Material " + arg.substring(1) + " is ignored.");
+                warn(player, "material '&7" + arg.substring(1) + "&r' is ignored.");
                 continue;
             }
 
@@ -210,9 +212,9 @@ public class DevNull implements CommandExecutor, Listener {
         this.cleanupRecover(player.getUniqueId());
 
         // send player summary of all items in /dev/null
-        player.sendMessage("Now in /dev/null (" + set.size() + "): " + set.stream()
+        light(player, "info", "now in /dev/null (" + set.size() + "): &a" + set.stream()
                 .map(Material::name)
-                .collect(Collectors.joining(", "))
+                .collect(Collectors.joining("&r, &a"))
         );
         return true;
     }
@@ -247,19 +249,6 @@ public class DevNull implements CommandExecutor, Listener {
             this.recover.put(player.getUniqueId(), limitedStack);
         }
         limitedStack.push(stack);
-    }
-
-    /**
-     * Make sure a player doesn't forget about any active /dev/null things
-     *
-     * @param event PlayerChangedWorldEvent
-     */
-    @EventHandler
-    public void onWorldChange(final PlayerChangedWorldEvent event) {
-        if (this.materials.containsKey(event.getPlayer().getUniqueId())) {
-            this.cleanup(event.getPlayer().getUniqueId(), true);
-            event.getPlayer().sendMessage("Your /dev/null has been cleared because you changed the world.");
-        }
     }
 
     /**
