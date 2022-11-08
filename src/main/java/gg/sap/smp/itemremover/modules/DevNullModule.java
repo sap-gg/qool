@@ -1,5 +1,6 @@
 package gg.sap.smp.itemremover.modules;
 
+import gg.sap.smp.itemremover.util.Format;
 import gg.sap.smp.itemremover.util.LimitedStack;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -20,16 +21,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static gg.sap.smp.itemremover.util.Util.*;
-
 public class DevNullModule implements CommandExecutor, Listener {
-
-    /**
-     * Contains which items shouldn't be added to a /dev/null
-     */
-    private static final Set<Material> IGNORED_ITEMS = new HashSet<>(List.of(
-            Material.AIR
-    ));
 
     /**
      * Contains which items should be deleted for a specific player when picking them up
@@ -113,9 +105,10 @@ public class DevNullModule implements CommandExecutor, Listener {
             @NotNull String label,
             @NotNull String[] args
     ) {
+        final Format format = new Format(sender);
         // only players should be able to use the /dev/null feature
         if (!(sender instanceof Player player)) {
-            error(sender, "this command is only intended for players.");
+            format.error("this command is only intended for players.");
             return true;
         }
 
@@ -133,7 +126,7 @@ public class DevNullModule implements CommandExecutor, Listener {
         // clears all items in devnull
         if (args.length == 1 && args[0].equalsIgnoreCase("clear")) {
             this.cleanup(player.getUniqueId(), true);
-            light(player, "ok", "/dev/null cleared.");
+            format.info("/dev/null cleared.");
             return true;
         }
 
@@ -142,7 +135,7 @@ public class DevNullModule implements CommandExecutor, Listener {
         if (args.length == 1 && args[0].equalsIgnoreCase("recover")) {
             final LimitedStack<ItemStack> stack = this.recover.get(player.getUniqueId());
             if (stack == null || stack.size() <= 0) {
-                warn(player, "no items to recover");
+                format.warn("no items to recover");
                 return true;
             }
             final Inventory inventory = Bukkit.createInventory(null, RECOVER_SIZE);
@@ -155,7 +148,7 @@ public class DevNullModule implements CommandExecutor, Listener {
             // clear recoverable items
             this.cleanupRecover(player.getUniqueId(), true);
 
-            light(player, "ok", "showing &d" + (i + 1) + "&r recovered items.");
+            format.info("showing &d" + (i + 1) + "&r recovered items.");
             return true;
         }
 
@@ -181,23 +174,16 @@ public class DevNullModule implements CommandExecutor, Listener {
             } else if (arg.startsWith("-")) {
                 add = false;
             } else {
-                error(player, "'+' or '-' prefix required (+" + arg + " or -" + arg + ")");
+                format.error("'+' or '-' prefix required (+" + arg + " or -" + arg + ")");
                 return true;
             }
 
             // get material from name
             final Material material = Material.getMaterial(arg.substring(1));
             if (material == null) {
-                error(player, "material '&7" + arg.substring(1) + "&r' not found.");
+                format.error("material '&7" + arg.substring(1) + "&r' not found.");
                 return true;
             }
-
-            if (IGNORED_ITEMS.contains(material)) {
-                warn(player, "material '&7" + arg.substring(1) + "&r' is ignored.");
-                continue;
-            }
-
-            // ignore AIR
 
             // add/remove to/from list
             if (add) {
@@ -212,7 +198,7 @@ public class DevNullModule implements CommandExecutor, Listener {
         this.cleanupRecover(player.getUniqueId());
 
         // send player summary of all items in /dev/null
-        light(player, "info", "now in /dev/null (" + set.size() + "): &a" + set.stream()
+        format.info("now in /dev/null (" + set.size() + "): &a" + set.stream()
                 .map(Material::name)
                 .collect(Collectors.joining("&r, &a"))
         );
