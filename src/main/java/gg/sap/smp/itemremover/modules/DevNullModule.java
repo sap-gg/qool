@@ -7,6 +7,7 @@ import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -15,7 +16,9 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
+import javax.annotation.Nonnull;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -117,6 +120,7 @@ public class DevNullModule implements CommandExecutor, Listener {
         if (args.length == 0) {
             player.sendMessage("/devnull clear - clears all materials");
             player.sendMessage("/devnull recover - recover deleted items");
+            player.sendMessage("/devnull inventory - execute /dev/null on inventory");
             player.sendMessage("/devnull , - list materials");
             player.sendMessage("/devnull +COBBLESTONE,-STONE - adds cobblestone, removes stone");
             return true;
@@ -149,6 +153,31 @@ public class DevNullModule implements CommandExecutor, Listener {
             this.cleanupRecover(player.getUniqueId(), true);
 
             format.info("showing &d" + (i + 1) + "&r recovered items.");
+            return true;
+        }
+
+        // /devnull inventory
+        // execute cleanup in inventory
+        if (args.length == 1 && args[0].equalsIgnoreCase("inventory")) {
+            final Inventory inventory = player.getInventory();
+            final ItemStack[] contents = inventory.getContents();
+
+            long removed = 0;
+            for (int i = 0; i < contents.length; i ++) {
+                final ItemStack stack = contents[i];
+                if (stack == null) {
+                    continue;
+                }
+                if (this.destroy(player, stack, null)) {
+                    contents[i] = null;
+                    removed += stack.getAmount();
+                }
+            }
+
+            // this may be redundant
+            inventory.setContents(contents);
+
+            format.info("&rdeleted &e" + removed + "&r items");
             return true;
         }
 
@@ -205,6 +234,30 @@ public class DevNullModule implements CommandExecutor, Listener {
         return true;
     }
 
+    public boolean destroy(@NotNull final Player player, @NotNull final ItemStack stack, @Nullable final Item item) {
+        final Set<Material> set = this.materials.get(player.getUniqueId());
+        if (set == null) {
+            return false;
+        }
+        if (!set.contains(stack.getType())) {
+            return false;
+        }
+        // remove dropped item
+        if (item != null) {
+            item.remove();
+        }
+        // add to recover list
+        final LimitedStack<ItemStack> limitedStack;
+        if (this.recover.containsKey(player.getUniqueId())) {
+            limitedStack = this.recover.get(player.getUniqueId());
+        } else {
+            limitedStack = new LimitedStack<>(DevNullModule.RECOVER_SIZE);
+            this.recover.put(player.getUniqueId(), limitedStack);
+        }
+        limitedStack.push(stack);
+        return true;
+    }
+
     /**
      * Clear Items on Pickup
      *
@@ -215,26 +268,10 @@ public class DevNullModule implements CommandExecutor, Listener {
         if (!(event.getEntity() instanceof Player player)) {
             return;
         }
-        final Set<Material> set = this.materials.get(player.getUniqueId());
-        if (set == null) {
-            return;
-        }
         final ItemStack stack = event.getItem().getItemStack();
-        if (!set.contains(stack.getType())) {
-            return;
+        if (this.destroy(player, stack, event.getItem())) {
+            event.setCancelled(true);
         }
-        event.setCancelled(true);
-        event.getItem().remove();
-
-        // add to recover list
-        final LimitedStack<ItemStack> limitedStack;
-        if (this.recover.containsKey(player.getUniqueId())) {
-            limitedStack = this.recover.get(player.getUniqueId());
-        } else {
-            limitedStack = new LimitedStack<>(DevNullModule.RECOVER_SIZE);
-            this.recover.put(player.getUniqueId(), limitedStack);
-        }
-        limitedStack.push(stack);
     }
 
     /**
