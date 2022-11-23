@@ -1,6 +1,7 @@
 package gg.sap.smp.itemremover;
 
 import gg.sap.smp.itemremover.modules.*;
+import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.Objects;
@@ -9,11 +10,13 @@ public final class ItemRemover extends JavaPlugin {
 
     @Override
     public void onEnable() {
+        final PluginManager pluginManager = this.getServer().getPluginManager();
+
         // devnull
         // /devnull [...]
         final DevNullModule devNull = new DevNullModule();
         Objects.requireNonNull(this.getCommand("devnull")).setExecutor(devNull);
-        this.getServer().getPluginManager().registerEvents(devNull, this);
+        pluginManager.registerEvents(devNull, this);
 
         // Trashbin
         // /trash
@@ -28,7 +31,10 @@ public final class ItemRemover extends JavaPlugin {
         Objects.requireNonNull(this.getCommand("magnet")).setExecutor(new MagnetCommand());
 
         // Elevator
-        this.getServer().getPluginManager().registerEvents(new ElevatorModule(), this);
+        pluginManager.registerEvents(new ElevatorModule(), this);
+
+        // Hopper Filter
+        pluginManager.registerEvents(new HopperFilter(), this);
     }
 
 }
