@@ -13,3 +13,5 @@ commands:
     description: "Setup /dev/null"
   dump:
     description: "Dump items to nearby containers"
+  magnet:
+    description: "Suck items yes nice"
