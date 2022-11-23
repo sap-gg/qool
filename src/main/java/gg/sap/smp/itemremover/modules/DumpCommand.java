@@ -1,5 +1,6 @@
 package gg.sap.smp.itemremover.modules;
 
+import gg.sap.smp.itemremover.util.Format;
 import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.block.Block;
@@ -14,12 +15,11 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
-import static gg.sap.smp.itemremover.util.Util.*;
+import static gg.sap.smp.itemremover.util.Format.MessageType;
+import static gg.sap.smp.itemremover.util.Util.enumGet;
+import static gg.sap.smp.itemremover.util.Util.enumJoin;
 
 public class DumpCommand implements CommandExecutor {
 
@@ -29,7 +29,7 @@ public class DumpCommand implements CommandExecutor {
         // At least 1 item from the target inventory were moved
         MOVED_SOME,
         // No items were moved
-        MOVED_NONE;
+        MOVED_NONE
     }
 
     /**
@@ -120,17 +120,26 @@ public class DumpCommand implements CommandExecutor {
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
+        final Format format = new Format(sender);
         if (!(sender instanceof Player player)) {
-            sender.sendMessage("This command is only intended for players.");
+            format.error("This command is only intended for players.");
             return true;
         }
+
+        // extract verbose flag from args
+        final List<String> argList = Arrays.asList(args);
+        if (argList.contains("-v")) {
+            format.setLevel(MessageType.VERBOSE);
+            argList.remove("-v");
+        }
+        args = argList.toArray(new String[0]);
 
         // required syntax:
         // /dump <INVENTORY,HOTBAR,...> <UP,DOWN,NORTH,...>
         if (args.length != 2 && args.length != 3) {
-            player.sendMessage(error(String.format("syntax: /dump &7{type:}&r <%s> &7{direction:}&r <%s>",
+            format.error(String.format("syntax: /dump &7{type:}&r <%s> &7{direction:}&r <%s>",
                     enumJoin(Type.values(), ","), enumJoin(BlockFace.values(), ",", 3) + "...")
-            ));
+            );
             return true;
         }
 
@@ -139,14 +148,14 @@ public class DumpCommand implements CommandExecutor {
         for (final String arg : args[0].split(",")) {
             final Type type = enumGet(Type.values(), arg);
             if (type == null) {
-                player.sendMessage(error("type '&7" + arg + "&r' not found."));
-                player.sendMessage(light("available", enumJoin(Type.values())));
+                format.error("type '&7" + arg + "&r' not found.");
+                format.custom("available", enumJoin(Type.values()));
                 return true;
             }
             types.add(type);
         }
         if (types.isEmpty()) {
-            player.sendMessage(warn("no type given. nothing to do."));
+            format.warn("no type given. nothing to do.");
             return true;
         }
 
@@ -155,14 +164,14 @@ public class DumpCommand implements CommandExecutor {
         for (final String arg : args[1].split(",")) {
             final BlockFace face = enumGet(BlockFace.values(), arg);
             if (face == null) {
-                player.sendMessage(error("block face '&7" + arg + "&r' not found."));
-                player.sendMessage(light("available", enumJoin(BlockFace.values())));
+                format.error("block face '&7" + arg + "&r' not found.");
+                format.custom("available", enumJoin(BlockFace.values()));
                 return true;
             }
             orientations.add(face);
         }
         if (orientations.isEmpty()) {
-            player.sendMessage(warn("no orientation given. nothing to do."));
+            format.warn("no orientation given. nothing to do.");
             return true;
         }
 
@@ -171,7 +180,7 @@ public class DumpCommand implements CommandExecutor {
             for (final String arg : args[2].split(",")) {
                 final Material material = enumGet(Material.values(), arg);
                 if (material == null) {
-                    player.sendMessage(error("material '&7" + arg + "&r' not found."));
+                    format.error("material '&7" + arg + "&r' not found.");
                     return true;
                 }
                 materials.add(material);
@@ -182,19 +191,20 @@ public class DumpCommand implements CommandExecutor {
         for (final BlockFace face : orientations) {
             final Block block = player.getLocation().getBlock().getRelative(face);
             if (!(block.getState() instanceof Container container)) {
-                player.sendMessage(warn("block at " + face.name() + " is not a container."));
+                format.warn("block at " + face.name() + " is not a container.");
                 continue;
             }
             for (final Type type : types) {
                 // do transfer and show particles
                 switch (type.transfer(inventory, container, materials)) {
+                    case INVENTORY_EMPTY -> format.verbose("no matching items to move");
                     case MOVED_SOME -> {
                         this.particlify(block, Particle.VILLAGER_HAPPY);
-                        player.sendMessage(light("debug", "sent at least 1 item to " + face));
+                        format.verbose("sent at least 1 item to " + face);
                     }
                     case MOVED_NONE -> {
                         this.particlify(block, Particle.VILLAGER_ANGRY);
-                        player.sendMessage(light("debug", "sent no item to " + face));
+                        format.verbose("sent no item to " + face);
                     }
                 }
             }

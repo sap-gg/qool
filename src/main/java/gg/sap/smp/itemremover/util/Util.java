@@ -1,8 +1,5 @@
 package gg.sap.smp.itemremover.util;
 
-import org.bukkit.ChatColor;
-import org.bukkit.command.CommandSender;
-
 import java.util.Arrays;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -81,36 +78,5 @@ public class Util {
     }
 
 
-    public static String color(final String message) {
-        return ChatColor.translateAlternateColorCodes('&', message);
-    }
-
-    public static void color(final CommandSender sender, final String message) {
-        sender.sendMessage(color(message));
-    }
-
-    public static String warn(final String message) {
-        return color("&ewarn:&r " + message);
-    }
-
-    public static void warn(final CommandSender sender, final String message) {
-        sender.sendMessage(warn(message));
-    }
-
-    public static String error(final String message) {
-        return color("&cerror:&r " + message);
-    }
-
-    public static void error(final CommandSender sender, final String message) {
-        sender.sendMessage(error(message));
-    }
-
-    public static String light(final String prefix, final String message) {
-        return color("&7" + prefix + ":&r " + message);
-    }
-
-    public static void light(final CommandSender sender, final String prefix, final String message) {
-        sender.sendMessage(light(prefix, message));
-    }
 
 }

@@ -1,14 +1,12 @@
 package gg.sap.smp.itemremover.modules;
 
+import gg.sap.smp.itemremover.util.Format;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
-
-import static gg.sap.smp.itemremover.util.Util.error;
-import static gg.sap.smp.itemremover.util.Util.light;
 
 public class TrashCommand implements CommandExecutor {
 
@@ -19,12 +17,13 @@ public class TrashCommand implements CommandExecutor {
             @NotNull String label,
             @NotNull String[] args
     ) {
+        final Format format = new Format(sender);
         if (!(sender instanceof Player player)) {
-            error(sender, "this command is only intended for players.");
+            format.error("this command is only intended for players.");
             return true;
         }
         player.openInventory(Bukkit.createInventory(null, 54));
-        light(player, "ok", "opened trash can");
+        format.info("opened trash can");
         return true;
     }
 
