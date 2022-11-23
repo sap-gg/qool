@@ -1,5 +1,6 @@
 package gg.sap.smp.itemremover.modules;
 
+import gg.sap.smp.itemremover.util.Format;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
@@ -18,9 +19,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static gg.sap.smp.itemremover.util.Util.error;
-import static gg.sap.smp.itemremover.util.Util.light;
-
 public class MagnetCommand implements CommandExecutor {
 
     public static final double ACTIVATION_RANGE_SQUARED = 1;
@@ -33,13 +31,14 @@ public class MagnetCommand implements CommandExecutor {
             @NotNull String label,
             @NotNull String[] args
     ) {
+        final Format format = new Format(sender);
         if (!(sender instanceof Player player)) {
-            error(sender, "this command is only intended for players.");
+            format.error("this command is only intended for players.");
             return true;
         }
 
         if (args.length == 0) {
-            light(player, "syntax", "/magnet <radius> [types...]");
+            format.custom("syntax", "/magnet <radius> [types...]");
             return true;
         }
 
@@ -47,7 +46,7 @@ public class MagnetCommand implements CommandExecutor {
         try {
             radius = Math.min(MAX_RANGE, Double.parseDouble(args[0]));
         } catch (final NumberFormatException nfex) {
-            error(player, "cannot parse radius to double");
+            format.error("cannot parse radius to double");
             return true;
         }
 
@@ -60,7 +59,7 @@ public class MagnetCommand implements CommandExecutor {
                     .collect(Collectors.toSet())) {
                 final Material material = Material.getMaterial(materialName);
                 if (material == null) {
-                    error(player, "material '&7" + materialName + "&r' not found.");
+                    format.error("material '&7" + materialName + "&r' not found.");
                     return true;
                 }
                 materials.add(material);
@@ -69,7 +68,7 @@ public class MagnetCommand implements CommandExecutor {
 
         long teleportedCount = 0;
         for (final Item item : player.getWorld().getNearbyEntitiesByType(Item.class, player.getLocation(), radius)) {
-            light(player, "verbose", "&dfound: " + item);
+            format.verbose("&dfound: " + item);
             // check type
             final ItemStack stack = item.getItemStack();
             if (!materials.isEmpty() && !materials.contains(stack.getType())) {
@@ -87,8 +86,7 @@ public class MagnetCommand implements CommandExecutor {
             teleportedCount += stack.getAmount();
         }
 
-
-        light(player, "&bok", "&rteleported &e" + teleportedCount + "&r items");
+        format.info("&rteleported &e" + teleportedCount + "&r items");
         return true;
     }
 
