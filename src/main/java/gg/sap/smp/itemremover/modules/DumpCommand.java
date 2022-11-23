@@ -1,10 +1,11 @@
 package gg.sap.smp.itemremover.modules;
 
+import gg.sap.smp.itemremover.util.Util;
+import org.bukkit.Chunk;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
-import org.bukkit.block.Block;
-import org.bukkit.block.BlockFace;
-import org.bukkit.block.Container;
+import org.bukkit.block.*;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -14,14 +15,16 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static gg.sap.smp.itemremover.util.Util.*;
 
 public class DumpCommand implements CommandExecutor {
+
+    /**
+     * Max range to check for containers
+     */
+    public static final int MAX_ADJ_CHUNK_COUNT = 3;
 
     enum Result {
         // The target inventory had no items to move.
@@ -110,6 +113,61 @@ public class DumpCommand implements CommandExecutor {
 
     }
 
+    private boolean fillContainers(
+            final Collection<Container> containers,
+            final Player player,
+            final String[] args
+    ) throws SSIRException {
+        // args: [12 <- xz range, 0 <- y range]
+        final int xzrange = Util.parseInt(args, 0);
+        Util.light(player, "verbose", "xzrange: " + xzrange);
+
+        // calculate amount of adjacent chunks needed to scan to fit args[0]
+        final int adjacentChunks = Math.max(1, xzrange >> 4);
+        Util.light(player, "verbose", "adjacent chunks: " + adjacentChunks);
+        Util.max(adjacentChunks, MAX_ADJ_CHUNK_COUNT, "too many chunks to scan");
+
+        final int yrange = Util.parseInt(args, 1, 0);
+        Util.light(player, "verbose", "yrange: " + yrange);
+        Util.max(yrange, 255, "y-range cannot be greater than 255");
+
+        final int xzrange2 = xzrange * xzrange;
+
+        final Location location = player.getLocation();
+        for (int xOffset = -adjacentChunks; xOffset <= adjacentChunks; xOffset++) {
+            for (int zOffset = -adjacentChunks; zOffset <= adjacentChunks; zOffset++) {
+                final int x = location.getBlockX() + xOffset * 16;
+                final int z = location.getBlockZ() + zOffset * 16;
+
+                Util.light(player, "verbose", "xO:" + xOffset + ",zO:" + zOffset + " :: " + x + " " + z);
+
+                // find every tile entity in chunk
+                final Chunk chunk = player.getWorld().getChunkAt(x, z);
+                Util.light(player, "verbose", "chunk: " + chunk);
+                for (final BlockState state : chunk.getTileEntities(false)) {
+                    Util.light(player, "verbose", "&dfound: " + state);
+                    if (!(state instanceof Chest chest)) {
+                        continue;
+                    }
+                    // check xz-range
+                    if (state.getLocation().distanceSquared(location) > xzrange2) {
+                        System.out.println("Skipped " + state.getLocation() + " because of xz-range");
+                        continue;
+                    }
+                    // check y-range
+                    if (Math.abs(state.getLocation().getBlockY() - location.getBlockY()) > yrange) {
+                        System.out.println("Skipped " + state.getLocation() + " because of y-range");
+                        continue;
+                    }
+                    containers.add(chest);
+                }
+            }
+        }
+
+        Util.light(player, "verbose", "added " + containers.size() + " states.");
+        return true;
+    }
+
     private void particlify(final Block block, final Particle particle) {
         block.getWorld().spawnParticle(
                 particle,
@@ -150,19 +208,46 @@ public class DumpCommand implements CommandExecutor {
             return true;
         }
 
+        final Set<Container> containers = new HashSet<>();
+
         // read & parse orientations from args
-        final Set<BlockFace> orientations = new LinkedHashSet<>();
         for (final String arg : args[1].split(",")) {
+            // method 1: range of containers
+            // /dump HOTBAR ALL=32;14 ...
+            if (arg.toUpperCase().startsWith("ALL=")) {
+                final String[] spl = arg.substring(4).trim().split(";");
+                if (spl[0].isBlank()) {
+                    error(player, "range " + arg + " invalid.");
+                    return true;
+                }
+                try {
+                    if (!this.fillContainers(containers, player, spl)) {
+                        return true;
+                    }
+                } catch (SSIRException e) {
+                    error(player, e.getMessage());
+                    return true;
+                }
+                continue;
+            }
+
+            // method 2: list of block faces
+            // dump HOTBAR NORTH ...
             final BlockFace face = enumGet(BlockFace.values(), arg);
             if (face == null) {
                 player.sendMessage(error("block face '&7" + arg + "&r' not found."));
                 player.sendMessage(light("available", enumJoin(BlockFace.values())));
                 return true;
             }
-            orientations.add(face);
+            final Block block = player.getLocation().getBlock().getRelative(face);
+            if (!(block.getState() instanceof Container container)) {
+                player.sendMessage(warn("block at " + face.name() + " is not a container."));
+                continue;
+            }
+            containers.add(container);
         }
-        if (orientations.isEmpty()) {
-            player.sendMessage(warn("no orientation given. nothing to do."));
+        if (containers.isEmpty()) {
+            player.sendMessage(warn("no containers given. nothing to do."));
             return true;
         }
 
@@ -179,22 +264,19 @@ public class DumpCommand implements CommandExecutor {
         }
 
         final Inventory inventory = player.getInventory();
-        for (final BlockFace face : orientations) {
-            final Block block = player.getLocation().getBlock().getRelative(face);
-            if (!(block.getState() instanceof Container container)) {
-                player.sendMessage(warn("block at " + face.name() + " is not a container."));
-                continue;
-            }
+        for (final Container container : containers) {
             for (final Type type : types) {
                 // do transfer and show particles
                 switch (type.transfer(inventory, container, materials)) {
                     case MOVED_SOME -> {
-                        this.particlify(block, Particle.VILLAGER_HAPPY);
-                        player.sendMessage(light("debug", "sent at least 1 item to " + face));
+                        this.particlify(container.getBlock(), Particle.VILLAGER_HAPPY);
+                        player.sendMessage(light("debug", "sent at least 1 item to " +
+                                Util.simpleLocation(container)));
                     }
                     case MOVED_NONE -> {
-                        this.particlify(block, Particle.VILLAGER_ANGRY);
-                        player.sendMessage(light("debug", "sent no item to " + face));
+                        this.particlify(container.getBlock(), Particle.VILLAGER_ANGRY);
+                        player.sendMessage(light("debug", "sent no item to " +
+                                Util.simpleLocation(container)));
                     }
                 }
             }

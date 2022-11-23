@@ -1,6 +1,9 @@
 package gg.sap.smp.itemremover.util;
 
 import org.bukkit.ChatColor;
+import org.bukkit.Location;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockState;
 import org.bukkit.command.CommandSender;
 
 import java.util.Arrays;
@@ -10,7 +13,45 @@ import java.util.stream.Stream;
 // fight me over that class name.
 public class Util {
 
-        /**
+    public static class SSIRException extends Exception {
+        public SSIRException(final String message) {
+            super(message);
+        }
+    }
+
+    public static int parseInt(final String[] arg, final int index) throws SSIRException {
+        return parseInt(arg, index, null);
+    }
+
+    public static int parseInt(final String[] arg, final int index, final Integer def) throws SSIRException {
+        if (arg.length <= index) {
+            if (def == null) {
+                throw new SSIRException("index out of bounds. " + index + " (idx) < " + arg.length + " (len)");
+            }
+            return def;
+        }
+        try {
+            return Integer.parseInt(arg[index]);
+        } catch (final NumberFormatException nfex) {
+            throw new SSIRException("cannot parse '" + arg[index] + "' to a number");
+        }
+    }
+
+    public static void max(final int what, final int max, final String reason) throws SSIRException {
+        if (what > max) {
+            throw new SSIRException(reason + ". max: " + max + ", given: " + what);
+        }
+    }
+
+    public static String simpleLocation(final BlockState state) {
+        return simpleLocation(state.getLocation());
+    }
+
+    public static String simpleLocation(final Location location) {
+        return String.format("%d %d %d", location.getBlockX(), location.getBlockY(), location.getBlockZ());
+    }
+
+    /**
      * Get enum value for input string or null if it doesn't exist. This compares with the <code>name()</code> method.
      *
      * @param values Enum values
