@@ -22,7 +22,7 @@ import java.util.stream.Stream;
 public class MagnetCommand implements CommandExecutor {
 
     public static final double ACTIVATION_RANGE_SQUARED = 1;
-    public static final double MAX_RANGE = 100;
+    public static final double MAX_RANGE = 1000;
 
     @Override
     public boolean onCommand(
