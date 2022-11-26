@@ -11,6 +11,8 @@ commands:
     description: "Opens a trash can"
   devnull:
     description: "Setup /dev/null"
+    aliases:
+      - 'dev/null'
   dump:
     description: "Dump items to nearby containers"
   magnet:

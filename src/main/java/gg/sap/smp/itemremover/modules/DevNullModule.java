@@ -27,12 +27,10 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.material.Attachable;
 import org.bukkit.util.BlockIterator;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import javax.annotation.Nonnull;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -50,7 +48,7 @@ public class DevNullModule implements CommandExecutor, Listener {
      * How many can be recovered?
      * Keep this a multiple of 9 (inventory size)
      */
-    public static final int RECOVER_SIZE = 36;
+    public static final int RECOVER_SIZE = 54;
 
     /**
      * Contains which items can be recovered for a specific player
