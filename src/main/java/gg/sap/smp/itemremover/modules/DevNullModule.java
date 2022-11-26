@@ -2,8 +2,11 @@ package gg.sap.smp.itemremover.modules;
 
 import gg.sap.smp.itemremover.util.Format;
 import gg.sap.smp.itemremover.util.LimitedStack;
+import gg.sap.smp.itemremover.util.Util;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.block.Block;
+import org.bukkit.block.Container;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -15,11 +18,13 @@ import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.util.BlockIterator;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.annotation.Nonnull;
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -89,6 +94,7 @@ public class DevNullModule implements CommandExecutor, Listener {
         }
     }
 
+
     /**
      * /dev/null command
      * <p>
@@ -120,7 +126,7 @@ public class DevNullModule implements CommandExecutor, Listener {
         if (args.length == 0) {
             player.sendMessage("/devnull clear - clears all materials");
             player.sendMessage("/devnull recover - recover deleted items");
-            player.sendMessage("/devnull inventory - execute /dev/null on inventory");
+            player.sendMessage("/devnull run <inv|range|container> - execute on a target");
             player.sendMessage("/devnull , - list materials");
             player.sendMessage("/devnull +COBBLESTONE,-STONE - adds cobblestone, removes stone");
             return true;
@@ -158,26 +164,8 @@ public class DevNullModule implements CommandExecutor, Listener {
 
         // /devnull inventory
         // execute cleanup in inventory
-        if (args.length == 1 && args[0].equalsIgnoreCase("inventory")) {
-            final Inventory inventory = player.getInventory();
-            final ItemStack[] contents = inventory.getContents();
-
-            long removed = 0;
-            for (int i = 0; i < contents.length; i ++) {
-                final ItemStack stack = contents[i];
-                if (stack == null) {
-                    continue;
-                }
-                if (this.destroy(player, stack, null)) {
-                    contents[i] = null;
-                    removed += stack.getAmount();
-                }
-            }
-
-            // this may be redundant
-            inventory.setContents(contents);
-
-            format.info("&rdeleted &e" + removed + "&r items");
+        if (args[0].equalsIgnoreCase("run")) {
+            this.runCommand(format, player, Arrays.copyOfRange(args, 1, args.length));
             return true;
         }
 
@@ -232,6 +220,89 @@ public class DevNullModule implements CommandExecutor, Listener {
                 .collect(Collectors.joining("&r, &a"))
         );
         return true;
+    }
+
+    private long runOnContent(final Player player, final Inventory inventory, Consumer<ItemStack[]> setFunction) {
+        final ItemStack[] contents = inventory.getContents();
+
+        long removed = 0;
+        for (int i = 0; i < contents.length; i ++) {
+            final ItemStack stack = contents[i];
+            if (stack == null) {
+                continue;
+            }
+            if (this.destroy(player, stack, null)) {
+                contents[i] = null;
+                removed += stack.getAmount();
+            }
+        }
+        setFunction.accept(contents);
+
+        return removed;
+    }
+
+    private void runCommand(final Format format, final Player player, final String[] args) {
+        // run /dev/null on range
+        final String where = args[0].toUpperCase();
+        if (where.startsWith("RANGE=")) {
+            final String[] spl = where.split("=");
+            if (spl.length != 2) {
+                format.error("invalid range");
+                return;
+            }
+            final int range;
+            try {
+                range = Integer.parseInt(spl[1]);
+            } catch (final NumberFormatException nfex) {
+                format.error("cannot parse range to an int");
+                return;
+            }
+            long removed = 0;
+            // get items in range
+            for (final Item item : player.getWorld().getNearbyEntitiesByType(Item.class, player.getLocation(), range)) {
+                if (this.destroy(player, item.getItemStack(), item)) {
+                    removed += item.getItemStack().getAmount();
+                }
+            }
+            format.info("&rdeleted &e" + removed + "&r items from &dthe ground: range " + range);
+            return;
+        }
+
+        if (where.equals("INV")) {
+            final long removed = this.runOnContent(
+                    player,
+                    player.getInventory(),
+                    content -> player.getInventory().setContents(content)
+            );
+            format.info("&rdeleted &e" + removed + "&r items from &dyour inventory");
+            return;
+        }
+
+        if (where.equals("CONTAINER") || where.equals("CONTAINER->")) {
+            final boolean processMultiple = where.equals("CONTAINER->");
+            final BlockIterator it = new BlockIterator(player, 10);
+            while (it.hasNext()) {
+                final Block block = it.next();
+                if (!(block.getState() instanceof Container container)) {
+                    continue;
+                }
+                final long removed = this.runOnContent(
+                        player,
+                        container.getInventory(),
+                        content -> container.getInventory().setContents(content)
+                );
+                format.info("&rdeleted &e" + removed + "&r items from &dcontainer: " + Util.simpleLocation(container));
+                if (!processMultiple) {
+                    return;
+                }
+            }
+            if (!processMultiple) {
+                format.error("no container in range");
+            }
+            return;
+        }
+
+        format.error("/devnull run <inv|range=[...]>");
     }
 
     public boolean destroy(@NotNull final Player player, @NotNull final ItemStack stack, @Nullable final Item item) {

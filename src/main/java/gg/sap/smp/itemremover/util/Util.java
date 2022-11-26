@@ -1,5 +1,8 @@
 package gg.sap.smp.itemremover.util;
 
+import org.bukkit.Location;
+import org.bukkit.block.BlockState;
+
 import java.util.Arrays;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -7,7 +10,15 @@ import java.util.stream.Stream;
 // fight me over that class name.
 public class Util {
 
-        /**
+    public static String simpleLocation(final BlockState state) {
+        return simpleLocation(state.getLocation());
+    }
+
+    public static String simpleLocation(final Location location) {
+        return String.format("%d %d %d", location.getBlockX(), location.getBlockY(), location.getBlockZ());
+    }
+
+    /**
      * Get enum value for input string or null if it doesn't exist. This compares with the <code>name()</code> method.
      *
      * @param values Enum values
@@ -76,7 +87,6 @@ public class Util {
         }
         return stream.collect(Collectors.joining(join));
     }
-
 
 
 }
