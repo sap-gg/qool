@@ -3,10 +3,16 @@ package gg.sap.smp.itemremover.modules;
 import gg.sap.smp.itemremover.util.Format;
 import gg.sap.smp.itemremover.util.LimitedStack;
 import gg.sap.smp.itemremover.util.Util;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TextComponent;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.Particle;
 import org.bukkit.block.Block;
 import org.bukkit.block.Container;
+import org.bukkit.block.Sign;
+import org.bukkit.block.data.type.WallSign;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -14,10 +20,14 @@ import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
+import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.event.entity.EntityPickupItemEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.material.Attachable;
 import org.bukkit.util.BlockIterator;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -94,6 +104,18 @@ public class DevNullModule implements CommandExecutor, Listener {
         }
     }
 
+    private @NotNull Set<Material> getSetCreate(final Player player) {
+        Set<Material> set = this.getSet(player);
+        if (set == null) {
+            set = new HashSet<>();
+            this.materials.put(player.getUniqueId(), set);
+        }
+        return set;
+    }
+
+    private @Nullable Set<Material> getSet(final Player player) {
+        return this.materials.get(player.getUniqueId());
+    }
 
     /**
      * /dev/null command
@@ -170,13 +192,7 @@ public class DevNullModule implements CommandExecutor, Listener {
         }
 
         // get or create new material set for executing player
-        final Set<Material> set;
-        if (this.materials.containsKey(player.getUniqueId())) {
-            set = this.materials.get(player.getUniqueId());
-        } else {
-            set = new HashSet<>();
-            this.materials.put(player.getUniqueId(), set);
-        }
+        final Set<Material> set = this.getSetCreate(player);
 
         // /devnull +STONE,-COBBLESTONE +GRASS -AIR
         for (final String arg : Arrays.stream(args)
@@ -226,7 +242,7 @@ public class DevNullModule implements CommandExecutor, Listener {
         final ItemStack[] contents = inventory.getContents();
 
         long removed = 0;
-        for (int i = 0; i < contents.length; i ++) {
+        for (int i = 0; i < contents.length; i++) {
             final ItemStack stack = contents[i];
             if (stack == null) {
                 continue;
@@ -306,7 +322,7 @@ public class DevNullModule implements CommandExecutor, Listener {
     }
 
     public boolean destroy(@NotNull final Player player, @NotNull final ItemStack stack, @Nullable final Item item) {
-        final Set<Material> set = this.materials.get(player.getUniqueId());
+        final Set<Material> set = this.getSet(player);
         if (set == null) {
             return false;
         }
@@ -354,6 +370,81 @@ public class DevNullModule implements CommandExecutor, Listener {
     public void onLeave(final PlayerQuitEvent event) {
         this.cleanup(event.getPlayer().getUniqueId(), true);
         this.cleanupRecover(event.getPlayer().getUniqueId(), true);
+    }
+
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+
+    @EventHandler
+    public void onSignEdit(final SignChangeEvent event) {
+        if (event.line(1) instanceof TextComponent text) {
+            if (!text.content().equalsIgnoreCase("[devnull]")) {
+                return;
+            }
+            event.line(1, Component.text("/dev/null", NamedTextColor.GREEN));
+
+            if (!(event.line(2) instanceof TextComponent what) || what.content().isBlank()) {
+                Format.warn(event.getPlayer(), "what to do? o.0");
+                event.getBlock().breakNaturally();
+                return;
+            }
+
+            event.line(2, Component.text(what.content().toUpperCase()));
+            event.getBlock().getWorld().spawnParticle(Particle.VILLAGER_HAPPY, event.getBlock().getLocation(), 2);
+        }
+    }
+
+    @EventHandler
+    public void onInteract(final PlayerInteractEvent event) {
+        if (event.getAction() != Action.RIGHT_CLICK_BLOCK) {
+            return;
+        }
+        final Block target = event.getClickedBlock();
+        if (target == null) {
+            return;
+        }
+        if (!(target.getState() instanceof Sign sign)) {
+            return;
+        }
+        if (!(sign.line(1) instanceof TextComponent header)
+                || !NamedTextColor.GREEN.equals(header.color())
+                || !header.content().equals("/dev/null")) {
+            return;
+        }
+        if (!(sign.line(2) instanceof TextComponent text)) {
+            return;
+        }
+        final Player player = event.getPlayer();
+        switch (text.content().toUpperCase()) {
+            // clears the /dev/null
+            case "CLEAR" -> {
+                // clear devnull
+                player.performCommand("devnull clear");
+            }
+
+            // adds items to a preset
+            case "PRESET" -> {
+                if (!(sign.getBlockData() instanceof WallSign wall)) {
+                    return;
+                }
+                final Block facedBlock = target.getRelative(wall.getFacing().getOppositeFace());
+                if (!(facedBlock.getState() instanceof Container container)) {
+                    return;
+                }
+                // add all items from container to devnull
+                final Set<Material> set = this.getSetCreate(player);
+                for (final ItemStack stack : container.getInventory().getContents()) {
+                    if (stack == null) {
+                        continue;
+                    }
+                    set.add(stack.getType());
+                }
+                player.performCommand("devnull ,");
+            }
+
+            // show a warning >.>
+            default -> Format.warn(player, "I don't know what to do with this sign.");
+        }
     }
 
 }
