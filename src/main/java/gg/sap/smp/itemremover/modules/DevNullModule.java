@@ -440,8 +440,13 @@ public class DevNullModule implements CommandExecutor, Listener {
                 player.performCommand("devnull ,");
             }
 
+            default -> {
+                Format.info(player, "&rExecuting &e/dev/null " + text.content() + "&r...");
+                player.performCommand("devnull " + text.content());
+            }
+
             // show a warning >.>
-            default -> Format.warn(player, "I don't know what to do with this sign.");
+            // default -> Format.warn(player, "I don't know what to do with this sign.");
         }
     }
 
