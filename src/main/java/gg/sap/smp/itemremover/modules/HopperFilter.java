@@ -2,12 +2,16 @@ package gg.sap.smp.itemremover.modules;
 
 import net.kyori.adventure.text.TextComponent;
 import org.bukkit.block.Container;
+import org.bukkit.entity.Item;
+import org.bukkit.event.Cancellable;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryMoveItemEvent;
 import org.bukkit.event.inventory.InventoryPickupItemEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 // Idea by LiveOverflow - thanks :)
 public class HopperFilter implements Listener {
@@ -36,19 +40,49 @@ public class HopperFilter implements Listener {
         return itemName.equals(filterName) == yes;
     }
 
-    public boolean run(final Container container, final ItemStack stack) {
+    enum Result {
+        ACCEPT,
+        REJECT,
+        OBLITERATE
+    }
+
+    public Result run(final Container container, final ItemStack stack) {
         if (!(container.customName() instanceof TextComponent component)) {
-            return false;
+            return Result.ACCEPT;
         }
         // allow hopper if no custom name was set
-        final String content = component.content().toUpperCase();
+        String content = component.content().toUpperCase();
         if (content.isBlank()) {
-            return false;
+            return Result.ACCEPT;
         }
-        final String itemName = stack.getType().name().toUpperCase();
 
-        // check item type
-        return !this.matchesAny(content.split(",\\s*"), itemName);
+        final boolean obliterate = content.startsWith("(?D)");
+        if (obliterate) {
+            content = content.substring(4);
+        }
+
+        final String itemName = stack.getType().name().toUpperCase();
+        if (this.matchesAny(content.split(",\\s*"), itemName)) {
+            return obliterate ? Result.OBLITERATE : Result.ACCEPT;
+        }
+        return Result.REJECT;
+    }
+
+    public void runOn(
+            @NotNull final Cancellable cancellable,
+            @NotNull final Container container,
+            @NotNull final ItemStack stack,
+            @Nullable final Item item
+    ) {
+        switch (this.run(container, stack)) {
+            case REJECT -> cancellable.setCancelled(true);
+            case OBLITERATE -> {
+                cancellable.setCancelled(true);
+                if (item != null) {
+                    item.remove();
+                }
+            }
+        }
     }
 
     @EventHandler
@@ -60,17 +94,13 @@ public class HopperFilter implements Listener {
         if (!(event.getDestination().getHolder() instanceof Container container)) {
             return;
         }
-        if (this.run(container, event.getItem())) {
-            event.setCancelled(true);
-        }
+        this.runOn(event, container, event.getItem(), null);
     }
 
     @EventHandler
     public void onInventoryPickupItemEvent(final InventoryPickupItemEvent event) {
         if (event.getInventory().getHolder() instanceof Container container) {
-            if (this.run(container, event.getItem().getItemStack())) {
-                event.setCancelled(true);
-            }
+            this.runOn(event, container, event.getItem().getItemStack(), event.getItem());
         }
     }
 
