@@ -1,6 +1,11 @@
 package gg.sap.smp.itemremover;
 
 import gg.sap.smp.itemremover.modules.*;
+import org.bukkit.Bukkit;
+import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.ShapelessRecipe;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -35,6 +40,15 @@ public final class ItemRemover extends JavaPlugin {
 
         // Hopper Filter
         pluginManager.registerEvents(new HopperFilter(), this);
+
+        // QoL Crafting Recipes
+        final NamespacedKey boneBlockNamespaceKey = new NamespacedKey(this, "crafting-boneblock");
+        if (Bukkit.addRecipe(new ShapelessRecipe(
+                boneBlockNamespaceKey,
+                new ItemStack(Material.BONE_BLOCK, 3)
+        ).addIngredient(9, new ItemStack(Material.BONE)))) {
+            System.out.println("Cannot add recipe for bone block.");
+        }
     }
 
 }

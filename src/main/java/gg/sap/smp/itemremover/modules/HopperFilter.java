@@ -1,6 +1,7 @@
 package gg.sap.smp.itemremover.modules;
 
 import net.kyori.adventure.text.TextComponent;
+import org.bukkit.Material;
 import org.bukkit.block.Container;
 import org.bukkit.entity.Item;
 import org.bukkit.event.Cancellable;
@@ -13,68 +14,80 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Arrays;
+
 // Idea by LiveOverflow - thanks :)
 public class HopperFilter implements Listener {
 
-    private boolean matchesAny(final String[] filterNames, final String itemName) {
+    public static final ItemStack AIR = new ItemStack(Material.AIR);
+
+    // Note - itemName is in UPPER-CASE!
+    // Note - filterNames is in UPPER-CASE!
+    private Result matchesAny(@NotNull final String[] filterNames, @NotNull final String itemName) {
         for (final String name : filterNames) {
-            if (this.matches(name, itemName)) {
-                return true;
+            final Result matchResult = this.matches(name, itemName);
+            if (matchResult != Result.REJECT) {
+                return matchResult;
             }
         }
-        return false;
+        return Result.REJECT;
     }
 
-    private boolean matches(String filterName, final String itemName) {
+    // Note - filterName is in UPPER-CASE!
+    // Note - itemName is in UPPER-CASE!
+    private Result matches(@NotNull String filterName, @NotNull final String itemName) {
         boolean yes = true;
         if (filterName.startsWith("!")) {
             filterName = filterName.substring(1);
             yes = false;
         }
+        boolean obliterate = false;
+        if (filterName.startsWith("(?D)")) {
+            filterName = filterName.substring(4);
+            obliterate = true;
+        }
         if (filterName.startsWith("*")) {
-            return itemName.endsWith(filterName.substring(1)) == yes;
+            final String checking = filterName.substring(1);
+            return Result.of(itemName.endsWith(checking) == yes, obliterate);
         }
         if (filterName.endsWith("*")) {
-            return itemName.startsWith(filterName.substring(0, filterName.length() - 1)) == yes;
+            final String checking = filterName.substring(0, filterName.length() - 1);
+            return Result.of(itemName.startsWith(checking) == yes, obliterate);
         }
-        return itemName.equals(filterName) == yes;
+        return Result.of(itemName.equals(filterName) == yes, obliterate);
     }
 
     enum Result {
         ACCEPT,
         REJECT,
-        OBLITERATE
+        OBLITERATE;
+
+        public static Result of(final boolean b, final boolean obliterate) {
+            return b ? (obliterate ? OBLITERATE : ACCEPT) : REJECT;
+        }
     }
 
-    public Result run(final Container container, final ItemStack stack) {
-        if (!(container.customName() instanceof TextComponent component)) {
+    public Result run(@NotNull final Container container, @NotNull final ItemStack stack) {
+        if (!(container.customName() instanceof final TextComponent component)) {
             return Result.ACCEPT;
         }
         // allow hopper if no custom name was set
-        String content = component.content().toUpperCase();
+        final String content = component.content().toUpperCase();
         if (content.isBlank()) {
             return Result.ACCEPT;
         }
-
-        final boolean obliterate = content.startsWith("(?D)");
-        if (obliterate) {
-            content = content.substring(4);
-        }
-
         final String itemName = stack.getType().name().toUpperCase();
-        if (this.matchesAny(content.split(",\\s*"), itemName)) {
-            return obliterate ? Result.OBLITERATE : Result.ACCEPT;
-        }
-        return Result.REJECT;
+        return this.matchesAny(content.split(",\\s*"), itemName);
     }
 
-    public void runOn(
+    public Result runOn(
             @NotNull final Cancellable cancellable,
             @NotNull final Container container,
             @NotNull final ItemStack stack,
             @Nullable final Item item
     ) {
-        switch (this.run(container, stack)) {
+        final Result result = this.run(container, stack);
+        switch (result) {
             case REJECT -> cancellable.setCancelled(true);
             case OBLITERATE -> {
                 cancellable.setCancelled(true);
@@ -83,6 +96,7 @@ public class HopperFilter implements Listener {
                 }
             }
         }
+        return result;
     }
 
     @EventHandler
@@ -91,15 +105,18 @@ public class HopperFilter implements Listener {
         if (!InventoryType.HOPPER.equals(event.getDestination().getType())) {
             return;
         }
-        if (!(event.getDestination().getHolder() instanceof Container container)) {
+        if (!(event.getDestination().getHolder() instanceof final Container container)) {
             return;
         }
-        this.runOn(event, container, event.getItem(), null);
+        if (this.runOn(event, container, event.getItem(), null) == Result.OBLITERATE) {
+            event.setItem(AIR);
+            event.setCancelled(false); // this might be illegal. beware.
+        }
     }
 
     @EventHandler
     public void onInventoryPickupItemEvent(final InventoryPickupItemEvent event) {
-        if (event.getInventory().getHolder() instanceof Container container) {
+        if (event.getInventory().getHolder() instanceof final Container container) {
             this.runOn(event, container, event.getItem().getItemStack(), event.getItem());
         }
     }

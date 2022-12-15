@@ -127,8 +127,11 @@ Simply place a hopper with a filter as the name
 * `totem_of_undying` - only move Totem of Undying
 * `!diamond_sword` - move all items except diamond swords
 * `!*_sword` - move all items except swords
+* `(?d)*_sword` - delete all swords
 
-> **Note**: Filters are case-insensitive
+> **Note**: Filters are case-insensitive.
+ 
+> **Warning**: Deleted items cannot be recovered.
 
 Multiple filters can be combined with `,\s*`.
 
