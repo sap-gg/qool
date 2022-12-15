@@ -18,7 +18,7 @@ public class TrashCommand implements CommandExecutor {
             @NotNull String[] args
     ) {
         final Format format = new Format(sender);
-        if (!(sender instanceof Player player)) {
+        if (!(sender instanceof final Player player)) {
             format.error("this command is only intended for players.");
             return true;
         }

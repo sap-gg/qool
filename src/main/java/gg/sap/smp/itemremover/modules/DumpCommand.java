@@ -121,7 +121,7 @@ public class DumpCommand implements CommandExecutor {
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         final Format format = new Format(sender);
-        if (!(sender instanceof Player player)) {
+        if (!(sender instanceof final Player player)) {
             format.error("This command is only intended for players.");
             return true;
         }
@@ -190,7 +190,7 @@ public class DumpCommand implements CommandExecutor {
         final Inventory inventory = player.getInventory();
         for (final BlockFace face : orientations) {
             final Block block = player.getLocation().getBlock().getRelative(face);
-            if (!(block.getState() instanceof Container container)) {
+            if (!(block.getState() instanceof final Container container)) {
                 format.warn("block at " + face.name() + " is not a container.");
                 continue;
             }

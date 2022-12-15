@@ -78,7 +78,7 @@ public class ElevatorModule implements Listener {
             check.subtract(0, 1, 0);
 
             final Block checkBlock = check.getBlock();
-            if (!(checkBlock.getBlockData() instanceof DaylightDetector blockData)) {
+            if (!(checkBlock.getBlockData() instanceof DaylightDetector)) {
                 continue;
             }
 

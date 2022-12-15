@@ -137,7 +137,7 @@ public class DevNullModule implements CommandExecutor, Listener {
     ) {
         final Format format = new Format(sender);
         // only players should be able to use the /dev/null feature
-        if (!(sender instanceof Player player)) {
+        if (!(sender instanceof final Player player)) {
             format.error("this command is only intended for players.");
             return true;
         }
@@ -298,7 +298,7 @@ public class DevNullModule implements CommandExecutor, Listener {
             final BlockIterator it = new BlockIterator(player, 10);
             while (it.hasNext()) {
                 final Block block = it.next();
-                if (!(block.getState() instanceof Container container)) {
+                if (!(block.getState() instanceof final Container container)) {
                     continue;
                 }
                 final long removed = this.runOnContent(
@@ -351,7 +351,7 @@ public class DevNullModule implements CommandExecutor, Listener {
      */
     @EventHandler
     public void onPickup(final EntityPickupItemEvent event) {
-        if (!(event.getEntity() instanceof Player player)) {
+        if (!(event.getEntity() instanceof final Player player)) {
             return;
         }
         final ItemStack stack = event.getItem().getItemStack();
@@ -376,13 +376,13 @@ public class DevNullModule implements CommandExecutor, Listener {
 
     @EventHandler
     public void onSignEdit(final SignChangeEvent event) {
-        if (event.line(1) instanceof TextComponent text) {
+        if (event.line(1) instanceof final TextComponent text) {
             if (!text.content().equalsIgnoreCase("[devnull]")) {
                 return;
             }
             event.line(1, Component.text("/dev/null", NamedTextColor.GREEN));
 
-            if (!(event.line(2) instanceof TextComponent what) || what.content().isBlank()) {
+            if (!(event.line(2) instanceof final TextComponent what) || what.content().isBlank()) {
                 Format.warn(event.getPlayer(), "what to do? o.0");
                 event.getBlock().breakNaturally();
                 return;
@@ -403,32 +403,29 @@ public class DevNullModule implements CommandExecutor, Listener {
         if (target == null) {
             return;
         }
-        if (!(target.getState() instanceof Sign sign)) {
+        if (!(target.getState() instanceof final Sign sign)) {
             return;
         }
-        if (!(sign.line(1) instanceof TextComponent header)
+        if (!(sign.line(1) instanceof final TextComponent header)
                 || !NamedTextColor.GREEN.equals(header.color())
                 || !header.content().equals("/dev/null")) {
             return;
         }
-        if (!(sign.line(2) instanceof TextComponent text)) {
+        if (!(sign.line(2) instanceof final TextComponent text)) {
             return;
         }
         final Player player = event.getPlayer();
         switch (text.content().toUpperCase()) {
             // clears the /dev/null
-            case "CLEAR" -> {
-                // clear devnull
-                player.performCommand("devnull clear");
-            }
+            case "CLEAR" -> player.performCommand("devnull clear");
 
             // adds items to a preset
             case "PRESET" -> {
-                if (!(sign.getBlockData() instanceof WallSign wall)) {
+                if (!(sign.getBlockData() instanceof final WallSign wall)) {
                     return;
                 }
                 final Block facedBlock = target.getRelative(wall.getFacing().getOppositeFace());
-                if (!(facedBlock.getState() instanceof Container container)) {
+                if (!(facedBlock.getState() instanceof final Container container)) {
                     return;
                 }
                 // add all items from container to devnull
@@ -446,9 +443,6 @@ public class DevNullModule implements CommandExecutor, Listener {
                 Format.info(player, "&rExecuting &e/dev/null " + text.content() + "&r...");
                 player.performCommand("devnull " + text.content());
             }
-
-            // show a warning >.>
-            // default -> Format.warn(player, "I don't know what to do with this sign.");
         }
     }
 
