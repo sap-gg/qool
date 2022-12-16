@@ -49,6 +49,9 @@ public final class ItemRemover extends JavaPlugin {
         ).addIngredient(9, new ItemStack(Material.BONE)))) {
             System.out.println("Cannot add recipe for bone block.");
         }
+
+        // Auto Crafter
+        Objects.requireNonNull(this.getCommand("quickcraft")).setExecutor(new QuickCraftCommand());
     }
 
 }

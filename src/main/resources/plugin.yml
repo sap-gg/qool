@@ -17,3 +17,7 @@ commands:
     description: "Dump items to nearby containers"
   magnet:
     description: "Suck items yes nice"
+  quickcraft:
+    aliases:
+      - qc
+    description: "Craft things quickly."
