@@ -130,10 +130,10 @@ public class DevNullModule implements CommandExecutor, Listener {
      */
     @Override
     public boolean onCommand(
-            @NotNull CommandSender sender,
-            @NotNull Command command,
-            @NotNull String label,
-            @NotNull String[] args
+            @NotNull final CommandSender sender,
+            @NotNull final Command command,
+            @NotNull final String label,
+            @NotNull final String[] args
     ) {
         final Format format = new Format(sender);
         // only players should be able to use the /dev/null feature
@@ -237,9 +237,12 @@ public class DevNullModule implements CommandExecutor, Listener {
         return true;
     }
 
-    private long runOnContent(final Player player, final Inventory inventory, Consumer<ItemStack[]> setFunction) {
+    private long runOnContent(
+            @NotNull final Player player,
+            @NotNull final Inventory inventory,
+            @NotNull final Consumer<ItemStack[]> setFunction
+    ) {
         final ItemStack[] contents = inventory.getContents();
-
         long removed = 0;
         for (int i = 0; i < contents.length; i++) {
             final ItemStack stack = contents[i];
@@ -252,11 +255,14 @@ public class DevNullModule implements CommandExecutor, Listener {
             }
         }
         setFunction.accept(contents);
-
         return removed;
     }
 
-    private void runCommand(final Format format, final Player player, final String[] args) {
+    private void runCommand(
+            @NotNull final Format format,
+            @NotNull final Player player,
+            @NotNull final String[] args
+    ) {
         // run /dev/null on range
         final String where = args[0].toUpperCase();
         if (where.startsWith("RANGE=")) {
@@ -320,7 +326,11 @@ public class DevNullModule implements CommandExecutor, Listener {
         format.error("/devnull run <inv|range=[...]>");
     }
 
-    public boolean destroy(@NotNull final Player player, @NotNull final ItemStack stack, @Nullable final Item item) {
+    public boolean destroy(
+            @NotNull final Player player,
+            @NotNull final ItemStack stack,
+            @Nullable final Item item
+    ) {
         final Set<Material> set = this.getSet(player);
         if (set == null) {
             return false;

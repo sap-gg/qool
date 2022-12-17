@@ -60,7 +60,11 @@ public class DumpCommand implements CommandExecutor {
          * @param container Container to send items to
          * @return true if any item was transferred, otherwise false
          */
-        Result transfer(final Inventory inventory, final Container container, @Nullable final Set<Material> materials) {
+        Result transfer(
+                @NotNull final Inventory inventory,
+                @NotNull final Container container,
+                @Nullable final Set<Material> materials
+        ) {
             boolean hasItems = false;
 
             // indicates if the container at face {face} has received any items
@@ -110,7 +114,7 @@ public class DumpCommand implements CommandExecutor {
 
     }
 
-    private void particlify(final Block block, final Particle particle) {
+    private void particlify(@NotNull final Block block, @NotNull final Particle particle) {
         block.getWorld().spawnParticle(
                 particle,
                 block.getLocation().clone().add(.5, .5, .5),
@@ -119,7 +123,12 @@ public class DumpCommand implements CommandExecutor {
     }
 
     @Override
-    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
+    public boolean onCommand(
+            @NotNull final CommandSender sender,
+            @NotNull final Command command,
+            @NotNull final String label,
+            @NotNull String[] args
+    ) {
         final Format format = new Format(sender);
         if (!(sender instanceof final Player player)) {
             format.error("This command is only intended for players.");

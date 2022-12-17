@@ -14,8 +14,6 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Arrays;
-
 // Idea by LiveOverflow - thanks :)
 public class HopperFilter implements Listener {
 

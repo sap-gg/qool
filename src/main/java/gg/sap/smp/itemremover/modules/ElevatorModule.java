@@ -48,7 +48,7 @@ public class ElevatorModule implements Listener {
         }
     }
 
-    private void elevatorUp(Player player, Block block) {
+    private void elevatorUp(final Player player, final Block block) {
         final Location check = block.getLocation().clone();
         for (int y = block.getY(); y < check.getWorld().getMaxHeight(); y++) {
             check.add(0, 1, 0);
@@ -57,8 +57,6 @@ public class ElevatorModule implements Listener {
             if (!(checkBlock.getBlockData() instanceof DaylightDetector)) {
                 continue;
             }
-
-            // TODO: maybe later check for private elevators
 
             final IllegalBlock illegalBlock = findIllegalBlock(checkBlock);
             if (illegalBlock != IllegalBlock.NONE && player.getGameMode() == GameMode.SURVIVAL) {
@@ -72,7 +70,7 @@ public class ElevatorModule implements Listener {
         }
     }
 
-    private void elevatorDown(Player player, Block block) {
+    private void elevatorDown(final Player player, final Block block) {
         final Location check = block.getLocation().clone();
         for (int y = block.getY(); y > 0; y--) {
             check.subtract(0, 1, 0);
@@ -81,8 +79,6 @@ public class ElevatorModule implements Listener {
             if (!(checkBlock.getBlockData() instanceof DaylightDetector)) {
                 continue;
             }
-
-            // TODO: maybe later check for private elevators
 
             final IllegalBlock illegalBlock = findIllegalBlock(checkBlock);
             if (illegalBlock != IllegalBlock.NONE && player.getGameMode() == GameMode.SURVIVAL) {
@@ -96,7 +92,7 @@ public class ElevatorModule implements Listener {
         }
     }
 
-    private IllegalBlock findIllegalBlock(Block block) {
+    private IllegalBlock findIllegalBlock(final Block block) {
         final Location check = block.getLocation();
         for (int j = 0; j < 3; j++) {
             final Material material = check.add(0, 1, 0).getBlock().getType();
@@ -117,7 +113,7 @@ public class ElevatorModule implements Listener {
 
         final String desc;
 
-        IllegalBlock(String desc) {
+        IllegalBlock(final String desc) {
             this.desc = desc;
         }
 

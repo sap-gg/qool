@@ -26,10 +26,10 @@ public class MagnetCommand implements CommandExecutor {
 
     @Override
     public boolean onCommand(
-            @NotNull CommandSender sender,
-            @NotNull Command command,
-            @NotNull String label,
-            @NotNull String[] args
+            @NotNull final CommandSender sender,
+            @NotNull final Command command,
+            @NotNull final String label,
+            @NotNull final String[] args
     ) {
         final Format format = new Format(sender);
         if (!(sender instanceof final Player player)) {
