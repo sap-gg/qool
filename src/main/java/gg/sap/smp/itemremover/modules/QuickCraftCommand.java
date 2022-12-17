@@ -3,26 +3,31 @@ package gg.sap.smp.itemremover.modules;
 import gg.sap.smp.itemremover.util.Format;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.block.Block;
+import org.bukkit.block.Container;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.Recipe;
+import org.bukkit.util.BlockIterator;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
+import java.util.List;
 
 public class QuickCraftCommand implements CommandExecutor {
 
     private void process(
             @NotNull final Player player,
+            @NotNull final Inventory inventory,
             final @Nullable ItemStack @NotNull [] craftMatrix,
             @NotNull final Recipe recipe
     ) {
-        final PlayerInventory inventory = player.getInventory();
         final ItemStack[] toRemove = Arrays.stream(craftMatrix)
                 .filter(Objects::nonNull)
                 .toArray(ItemStack[]::new);
@@ -54,6 +59,7 @@ public class QuickCraftCommand implements CommandExecutor {
 
     private boolean startCrafting(
             @NotNull final Player player,
+            @NotNull final Inventory inventory,
             @NotNull final String[] args
     ) {
         // /ac nnn nnn nnn n=gold_nugget
@@ -95,9 +101,12 @@ public class QuickCraftCommand implements CommandExecutor {
             Format.error(player, "recipe not found.");
             return false;
         }
-        this.process(player, craftMatrix, targetRecipe);
+        System.out.println("Crafting " + matrix + " -> " + targetRecipe.getResult().getType().name());
+        this.process(player, inventory, craftMatrix, targetRecipe);
         return true;
     }
+
+    // qcc <...>
 
     @Override
     public boolean onCommand(
@@ -110,6 +119,32 @@ public class QuickCraftCommand implements CommandExecutor {
             sender.sendMessage("This command is not intended for non-players.");
             return true;
         }
+
+        if (args.length == 0) {
+            Format.info(player, "/qc <top> <mid> <bot> <k=material>");
+            Format.info(player, "/qcc <top> <mid> <bot> <k=material>");
+            return true;
+        }
+
+        // toggle container mode
+        Inventory inventory = null;
+        if ("qcc".equalsIgnoreCase(label)) {
+            final BlockIterator iterator = new BlockIterator(player, 10);
+            while(iterator.hasNext()) {
+                final Block block = iterator.next();
+                if (block.getState() instanceof final Container container) {
+                    inventory = container.getInventory();
+                    break;
+                }
+            }
+            if (inventory == null) {
+                Format.error(player, "no container in range.");
+                return true;
+            }
+        } else {
+            inventory = player.getInventory();
+        }
+
         long count = 0;
         final List<String> argsList = new ArrayList<>();
         for (int i = 0; i < args.length; i++) {
@@ -125,7 +160,7 @@ public class QuickCraftCommand implements CommandExecutor {
                 final String[] separateArgs = argsList.toArray(new String[0]);
                 argsList.clear();
 
-                if (!this.startCrafting(player, separateArgs)) {
+                if (!this.startCrafting(player, inventory, separateArgs)) {
                     return true;
                 }
                 continue;
