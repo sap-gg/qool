@@ -52,6 +52,9 @@ public final class ItemRemover extends JavaPlugin {
 
         // Auto Crafter
         Objects.requireNonNull(this.getCommand("quickcraft")).setExecutor(new QuickCraftCommand());
+
+        // Compressed Stuff
+        new CompressedItemsModule(this);
     }
 
 }
