@@ -22,3 +22,7 @@ commands:
       - qc
       - qcc
     description: "Craft things quickly."
+  exchange:
+    aliases:
+      - ex
+    description: "Exchange items"

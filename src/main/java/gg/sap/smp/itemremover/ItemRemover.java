@@ -47,6 +47,11 @@ public final class ItemRemover extends JavaPlugin {
 
         // Safari Net
         new SafariNetModule(this);
+
+        // Exchange
+        final ExchangeCommand exchange = new ExchangeCommand();
+        Objects.requireNonNull(this.getCommand("exchange")).setExecutor(exchange);
+        pluginManager.registerEvents(exchange, this);
     }
 
 }
