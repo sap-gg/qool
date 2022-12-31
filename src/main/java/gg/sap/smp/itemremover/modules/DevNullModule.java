@@ -24,10 +24,13 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.util.BlockIterator;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -454,6 +457,49 @@ public class DevNullModule implements CommandExecutor, Listener {
                 player.performCommand("devnull " + text.content());
             }
         }
+    }
+
+    private void checkContents(final Player player, final ItemStack[] contents) {
+        final Set<Material> set = this.getSetCreate(player);
+
+        for (final ItemStack stack : contents) {
+            if (stack == null) {
+                continue;
+            }
+            if (!stack.hasItemMeta()) {
+                continue;
+            }
+            final ItemMeta meta = stack.getItemMeta();
+            if (!(meta.displayName() instanceof TextComponent text)) {
+                continue;
+            }
+            if (!text.content().startsWith("/dev/null:")) {
+                continue;
+            }
+            final String materials = text.content().substring(10).strip();
+            for (final String materialName : Arrays.stream(materials.split("\\s+"))
+                    .flatMap((Function<String, Stream<String>>) s -> Arrays.stream(s.split(",\\s*")))
+                    .map(String::toUpperCase)
+                    .filter(s -> !s.isBlank())
+                    .collect(Collectors.toSet()))  {
+                final Material material = Material.valueOf(materialName.toUpperCase());
+                if (material == null) {
+                    continue;
+                }
+                // add material to player's /dev/null
+                set.add(material);
+            }
+        }
+    }
+
+    @EventHandler
+    public void onJoin(final PlayerJoinEvent event) {
+        final Player player = event.getPlayer();
+        final PlayerInventory inventory = player.getInventory();
+
+        this.checkContents(player, inventory.getContents());
+        this.checkContents(player, inventory.getArmorContents());
+        this.checkContents(player, inventory.getExtraContents());
     }
 
 }
