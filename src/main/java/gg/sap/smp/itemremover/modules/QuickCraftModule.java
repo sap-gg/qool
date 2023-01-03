@@ -87,19 +87,20 @@ public class QuickCraftModule {
 
             // how many items have been crafted
             long count = 0;
-            ItemStack[] contents;
             while (true) {
-                // copy inventory contents for later rollback
-                contents = Arrays.copyOfRange(
-                        inventory.getContents(),
-                        0, inventory.getContents().length
-                );
+                // create dummy inventory
+                final Inventory dummy = Bukkit.createInventory(null, inventory.getType());
+                dummy.setContents(inventory.getContents());
+
                 // remove items required for crafting
-                final HashMap<Integer, ItemStack> removeMap = inventory.removeItemAnySlot(toRemove);
+                final HashMap<Integer, ItemStack> removeMap = dummy.removeItemAnySlot(toRemove);
                 if (removeMap.size() != 0) {
-                    inventory.setContents(contents);
                     break;
                 }
+
+                // if items were removed, update "real" inventory
+                inventory.setContents(dummy.getContents());
+
                 // execute crafting
                 final HashMap<Integer, ItemStack> addMap = output.addItem(this.recipe().getResult());
                 if (addMap.size() != 0) {
@@ -311,6 +312,7 @@ public class QuickCraftModule {
                     a.process(null, container.getInventory(), container.getInventory());
                 }
                 task.block.getWorld().spawnParticle(Particle.NOTE, task.block.getLocation(), 1);
+                System.out.println("Ran task " + task.id);
             }
         }
 
