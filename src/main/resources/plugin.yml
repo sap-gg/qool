@@ -21,6 +21,9 @@ commands:
     aliases:
       - qc
       - qcc
+      - qcc->
+      - qccs
+      - qccs->
     description: "Craft things quickly."
   exchange:
     aliases:
