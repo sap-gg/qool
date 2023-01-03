@@ -2,6 +2,7 @@ package gg.sap.smp.itemremover.util;
 
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
+import org.jetbrains.annotations.NotNull;
 
 public class Format {
 
@@ -94,7 +95,7 @@ public class Format {
         MessageType.ERROR.send(sender, message);
     }
 
-    public static void info(final CommandSender sender, final String message) {
+    public static void info(@NotNull final CommandSender sender, final String message) {
         MessageType.INFO.send(sender, message);
     }
 

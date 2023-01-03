@@ -25,6 +25,11 @@ commands:
       - qccs
       - qccs->
     description: "Craft things quickly."
+  quicksched:
+    description: "Quick Craft but task yes"
+    aliases:
+      - qs
+      - qsb
   exchange:
     aliases:
       - ex

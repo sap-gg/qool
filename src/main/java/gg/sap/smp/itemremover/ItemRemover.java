@@ -37,7 +37,9 @@ public final class ItemRemover extends JavaPlugin {
         pluginManager.registerEvents(new HopperFilter(), this);
 
         // Auto Crafter
-        Objects.requireNonNull(this.getCommand("quickcraft")).setExecutor(new QuickCraftCommand());
+        final QuickCraftModule quickCraftModule = new QuickCraftModule(this);
+        Objects.requireNonNull(this.getCommand("quickcraft")).setExecutor(quickCraftModule.quickCraftCommand);
+        Objects.requireNonNull(this.getCommand("quicksched")).setExecutor(quickCraftModule.quickScheduleCommand);
 
         // Compressed Stuff
         new CompressedItemsModule(this);
