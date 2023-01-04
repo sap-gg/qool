@@ -307,12 +307,14 @@ public class QuickCraftModule {
                 if (!task.block.getChunk().isLoaded()) {
                     continue;
                 }
-                final Container container = (Container) task.block.getState();
+                // block has been removed, maybe?
+                if (!(task.block.getState() instanceof final Container container)) {
+                    continue;
+                }
                 for (final A a : task.a) {
                     a.process(null, container.getInventory(), container.getInventory());
                 }
                 task.block.getWorld().spawnParticle(Particle.NOTE, task.block.getLocation(), 1);
-                System.out.println("Ran task " + task.id);
             }
         }
 
