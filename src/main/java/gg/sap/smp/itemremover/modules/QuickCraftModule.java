@@ -17,6 +17,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
+import java.util.function.Consumer;
 
 public class QuickCraftModule {
 
@@ -89,7 +90,16 @@ public class QuickCraftModule {
             long count = 0;
             while (true) {
                 // create dummy inventory
-                final Inventory dummy = Bukkit.createInventory(null, inventory.getType());
+                final Inventory dummy;
+                // some types may be different (e.g. double chest), so we need to double-check
+                if (inventory.getType().getDefaultSize() == inventory.getSize()) {
+                    dummy = Bukkit.createInventory(null, inventory.getType());
+                } else if (inventory.getSize() % 9 == 0) {
+                    dummy = Bukkit.createInventory(null, inventory.getSize());
+                } else {
+                    Format.error(player, "cannot recreate inventory to craft");
+                    return;
+                }
                 dummy.setContents(inventory.getContents());
 
                 // remove items required for crafting
@@ -104,14 +114,20 @@ public class QuickCraftModule {
                 // execute crafting
                 final HashMap<Integer, ItemStack> addMap = output.addItem(this.recipe().getResult());
                 if (addMap.size() != 0) {
-                    addMap.values().forEach(item -> player.getWorld().dropItem(player.getLocation(), item));
+                    final Consumer<ItemStack> action;
+                    if (player != null) {
+                        action = item -> player.getWorld().dropItem(player.getLocation(), item);
+                    } else if (inventory.getLocation() != null && inventory.getLocation().getWorld() != null) {
+                        action = item -> inventory.getLocation().getWorld().dropItem(inventory.getLocation(), item);
+                    } else {
+                        action = item -> {};
+                    }
+                    addMap.values().forEach(action);
                 }
                 // count total craft count
                 count += this.recipe().getResult().getAmount();
             }
-            if (player != null) {
-                Format.info(player, "Crafted &e" + count + "&8x&r" + this.recipe().getResult().getType().name());
-            }
+            Format.info(player, "Crafted &e" + count + "&8x&r" + this.recipe().getResult().getType().name());
         }
 
         public static ItemStack[] compileMatrix(

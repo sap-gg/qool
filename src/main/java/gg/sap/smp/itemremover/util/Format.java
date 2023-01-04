@@ -2,7 +2,7 @@ package gg.sap.smp.itemremover.util;
 
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
-import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class Format {
 
@@ -15,6 +15,7 @@ public class Format {
 
         final int level;
         final String prefix;
+
         MessageType(final int level, final String prefix) {
             this.level = level;
             this.prefix = prefix;
@@ -28,8 +29,10 @@ public class Format {
             return color(MessageType.of(this.prefix, message));
         }
 
-        public void send(final CommandSender sender, final String message) {
-            sender.sendMessage(this.format(message));
+        public void send(@Nullable final CommandSender sender, final String message) {
+            if (sender != null) {
+                sender.sendMessage(this.format(message));
+            }
         }
     }
 
@@ -46,10 +49,10 @@ public class Format {
     }
 
     public void send(final MessageType type, final String message) {
-       if (this.level.level < type.level)  {
-           return;
-       }
-       type.send(this.sender, message);
+        if (this.level.level < type.level) {
+            return;
+        }
+        type.send(this.sender, message);
     }
 
     public void error(final String message) {
@@ -69,7 +72,7 @@ public class Format {
     }
 
     public void custom(final String prefix, final String message) {
-        if (this.level.level < MessageType.CUSTOM.level)  {
+        if (this.level.level < MessageType.CUSTOM.level) {
             return;
         }
         Format.light(this.sender, prefix, message);
@@ -87,19 +90,19 @@ public class Format {
 
     ///
 
-    public static void warn(final CommandSender sender, final String message) {
+    public static void warn(@Nullable final CommandSender sender, final String message) {
         MessageType.WARN.send(sender, message);
     }
 
-    public static void error(final CommandSender sender, final String message) {
+    public static void error(@Nullable final CommandSender sender, final String message) {
         MessageType.ERROR.send(sender, message);
     }
 
-    public static void info(@NotNull final CommandSender sender, final String message) {
+    public static void info(@Nullable final CommandSender sender, final String message) {
         MessageType.INFO.send(sender, message);
     }
 
-    public static void verbose(final CommandSender sender, final String message) {
+    public static void verbose(@Nullable final CommandSender sender, final String message) {
         MessageType.VERBOSE.send(sender, message);
     }
 
