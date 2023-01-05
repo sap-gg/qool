@@ -30,6 +30,7 @@ commands:
     aliases:
       - qs
       - qsb
+      - qsbo
   exchange:
     aliases:
       - ex

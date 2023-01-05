@@ -15,7 +15,8 @@ public class Util {
     }
 
     public static String simpleLocation(final Location location) {
-        return String.format("%d %d %d", location.getBlockX(), location.getBlockY(), location.getBlockZ());
+        return String.format("%d %d %d (%s)",
+                location.getBlockX(), location.getBlockY(), location.getBlockZ(), location.getWorld().getName());
     }
 
     /**

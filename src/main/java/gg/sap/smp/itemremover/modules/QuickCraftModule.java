@@ -1,6 +1,8 @@
 package gg.sap.smp.itemremover.modules;
 
+import com.google.common.collect.ImmutableSet;
 import gg.sap.smp.itemremover.util.Format;
+import gg.sap.smp.itemremover.util.Util;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.Container;
@@ -8,6 +10,9 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.Recipe;
@@ -26,11 +31,15 @@ public class QuickCraftModule {
     public final QuickCraftCommand quickCraftCommand;
     public final QuickScheduleCommand quickScheduleCommand;
 
-    public QuickCraftModule(JavaPlugin plugin) {
+    public QuickCraftModule(final JavaPlugin plugin) {
         this.plugin = plugin;
 
+        final Tasker tasker = new Tasker(plugin);
+
         this.quickCraftCommand = new QuickCraftCommand();
-        this.quickScheduleCommand = new QuickScheduleCommand();
+        this.quickScheduleCommand = new QuickScheduleCommand(tasker);
+
+        plugin.getServer().getPluginManager().registerEvents(this.quickScheduleCommand, plugin);
     }
 
     /**
@@ -86,20 +95,21 @@ public class QuickCraftModule {
                     .filter(Objects::nonNull)
                     .toArray(ItemStack[]::new);
 
+            // create dummy inventory
+            final Inventory dummy;
+            // some types may be different (e.g. double chest), so we need to double-check
+            if (inventory.getType().getDefaultSize() == inventory.getSize()) {
+                dummy = Bukkit.createInventory(null, inventory.getType());
+            } else if (inventory.getSize() % 9 == 0) {
+                dummy = Bukkit.createInventory(null, inventory.getSize());
+            } else {
+                Format.error(player, "cannot recreate inventory to craft");
+                return;
+            }
+
             // how many items have been crafted
             long count = 0;
             while (true) {
-                // create dummy inventory
-                final Inventory dummy;
-                // some types may be different (e.g. double chest), so we need to double-check
-                if (inventory.getType().getDefaultSize() == inventory.getSize()) {
-                    dummy = Bukkit.createInventory(null, inventory.getType());
-                } else if (inventory.getSize() % 9 == 0) {
-                    dummy = Bukkit.createInventory(null, inventory.getSize());
-                } else {
-                    Format.error(player, "cannot recreate inventory to craft");
-                    return;
-                }
                 dummy.setContents(inventory.getContents());
 
                 // remove items required for crafting
@@ -118,9 +128,11 @@ public class QuickCraftModule {
                     if (player != null) {
                         action = item -> player.getWorld().dropItem(player.getLocation(), item);
                     } else if (inventory.getLocation() != null && inventory.getLocation().getWorld() != null) {
-                        action = item -> inventory.getLocation().getWorld().dropItem(inventory.getLocation(), item);
+                        action = item -> output.getLocation().getWorld().dropItem(output.getLocation(), item);
                     } else {
-                        action = item -> {};
+                        // do nothing, rip items
+                        action = item -> {
+                        };
                     }
                     addMap.values().forEach(action);
                 }
@@ -201,6 +213,114 @@ public class QuickCraftModule {
         }
     }
 
+    private static class Tasker {
+
+        private final Set<Task> tasks = new HashSet<>();
+
+        public Tasker(final JavaPlugin plugin) {
+            Bukkit.getScheduler().runTaskTimer(
+                    plugin,
+                    this::tickTasks,
+                    1,
+                    1
+            );
+        }
+
+        public void addTask(final Task task) {
+            this.tasks.add(task);
+        }
+
+        public boolean removeTaskById(final int id) {
+            return this.tasks.removeIf(t -> t.id == id);
+        }
+
+        public ImmutableSet<Task> getTasksImmutable() {
+            return ImmutableSet.copyOf(this.tasks);
+        }
+
+        private void tickTasks() {
+            this.tasks.forEach(Task::tick);
+        }
+
+        public static final class Task {
+            private static int taskIdCounter = 0;
+
+            public final int id;
+            public final UUID creator;
+            public final Block inputBlock;
+            public final Block outputBlock;
+            public final Set<A> a;
+            public final long ticks;
+            public long current;
+
+            public Task(
+                    final UUID creator,
+                    final long ticks,
+                    final Block inputBlock,
+                    final Block outputBlock,
+                    final Set<A> a
+            ) {
+                this.id = Task.taskIdCounter++;
+                this.creator = creator;
+
+                // reset ticks
+                this.ticks = ticks;
+                this.current = this.ticks;
+
+                this.inputBlock = inputBlock;
+                this.outputBlock = outputBlock;
+                this.a = a;
+            }
+
+            public void tick() {
+                if (--this.current >= 0) {
+                    return;
+                }
+                this.current = this.ticks;
+                this.run();
+            }
+
+            private void run() {
+                // ignore unloaded blocks
+                if (!this.inputBlock.getChunk().isLoaded() || !this.outputBlock.getChunk().isLoaded()) {
+                    return;
+                }
+
+                // input block has been removed, maybe?
+                if (!(this.inputBlock.getState() instanceof final Container inputContainer)) {
+                    this.particlify(this.inputBlock, Particle.VILLAGER_ANGRY);
+                    return;
+                }
+
+                // output block has been removed, maybe?
+                if (!(this.outputBlock.getState() instanceof final Container outputContainer)) {
+                    this.particlify(this.outputBlock, Particle.VILLAGER_ANGRY);
+                    return;
+                }
+
+                // start crafting
+                for (final A a : this.a) {
+                    a.process(null, inputContainer.getInventory(), outputContainer.getInventory());
+                }
+
+                // ✨particles ✨
+                this.particlify(this.inputBlock, Particle.NOTE);
+                if (!this.inputBlock.equals(this.outputBlock)) {
+                    this.particlify(this.outputBlock, Particle.SPIT);
+                }
+            }
+
+            private void particlify(final Block block, final Particle particle) {
+                block.getWorld().spawnParticle(
+                        particle,
+                        block.getLocation(),
+                        1
+                );
+            }
+        }
+
+    }
+
     private static class QuickCraftCommand implements CommandExecutor {
 
         @Override
@@ -273,65 +393,13 @@ public class QuickCraftModule {
         }
     }
 
-    private class QuickScheduleCommand implements CommandExecutor {
+    private static class QuickScheduleCommand implements CommandExecutor, Listener {
 
-        private final Set<Task> tasks = new HashSet<>();
+        private final Map<UUID, Block> outputBlocks = new HashMap<>();
+        private final Tasker tasker;
 
-        public static final class Task {
-            private static int taskIdCounter = 0;
-
-            public final int id;
-            public final UUID creator;
-            public final Block block;
-            public final Set<A> a;
-            public final long ticks;
-            public long current;
-
-            public Task(
-                    final UUID creator,
-                    final long ticks,
-                    final Block block,
-                    final Set<A> a
-            ) {
-                this.id = Task.taskIdCounter++;
-                this.creator = creator;
-
-                // reset ticks
-                this.ticks = ticks;
-                this.current = this.ticks;
-
-                this.block = block;
-                this.a = a;
-            }
-
-        }
-
-
-        public QuickScheduleCommand() {
-            Bukkit.getScheduler().runTaskTimer(QuickCraftModule.this.plugin, this::tickTasks, 1, 1);
-        }
-
-        private void tickTasks() {
-            // run through tasks
-            for (final Task task : this.tasks) {
-                if (--task.current >= 0) {
-                    continue;
-                }
-                task.current = task.ticks;
-
-                // ignore unloaded blocks
-                if (!task.block.getChunk().isLoaded()) {
-                    continue;
-                }
-                // block has been removed, maybe?
-                if (!(task.block.getState() instanceof final Container container)) {
-                    continue;
-                }
-                for (final A a : task.a) {
-                    a.process(null, container.getInventory(), container.getInventory());
-                }
-                task.block.getWorld().spawnParticle(Particle.NOTE, task.block.getLocation(), 1);
-            }
+        public QuickScheduleCommand(Tasker tasker) {
+            this.tasker = tasker;
         }
 
         // /qsb <ticks> <top> <mid> <bot> <k=v...>
@@ -351,19 +419,19 @@ public class QuickCraftModule {
                 return;
             }
 
-            // ray trace container
-            Container container = null;
-            Block block = null;
+            // ray trace inputContainer
+            Container inputContainer = null;
+            Block inputBlock = null;
             final BlockIterator iterator = new BlockIterator(player, 10);
             while (iterator.hasNext()) {
                 final Block b = iterator.next();
                 if (b.getState() instanceof final Container c) {
-                    container = c;
-                    block = b;
+                    inputContainer = c;
+                    inputBlock = b;
                     break;
                 }
             }
-            if (container == null) {
+            if (inputContainer == null) {
                 Format.error(player, "cannot find container");
                 return;
             }
@@ -377,20 +445,50 @@ public class QuickCraftModule {
                 return;
             }
 
-            final Task task = new Task(player.getUniqueId(), ticks, block, as);
-            this.tasks.add(task);
+            // get output container
+            final Block outputBlock;
+            if (this.outputBlocks.containsKey(player.getUniqueId())) {
+                // different output block
+                outputBlock = this.outputBlocks.get(player.getUniqueId());
+
+                this.outputBlocks.remove(player.getUniqueId());
+                Format.info(player, "&enote&r - using different output block: &7" +
+                        Util.simpleLocation(outputBlock.getLocation()));
+            } else {
+                outputBlock = inputBlock;
+            }
+
+            final Tasker.Task task = new Tasker.Task(player.getUniqueId(), ticks, inputBlock, outputBlock, as);
+            this.tasker.addTask(task);
 
             Format.info(player, "task &e" + task.id + "&r created!");
         }
 
+        // /qsbo
+        private void handleMarkOut(final Player player) {
+            // ray trace inputContainer
+            final BlockIterator iterator = new BlockIterator(player, 10);
+            while (iterator.hasNext()) {
+                if (!(iterator.next().getState() instanceof final Container container)) {
+                    continue;
+                }
+                this.outputBlocks.put(player.getUniqueId(), container.getBlock());
+                Format.info(player, "marked block for output");
+                return;
+            }
+            Format.error(player, "cannot find inputContainer");
+        }
+
         // /qs list
         private void handleList(final CommandSender sender, final String[] args) {
-            if (this.tasks.size() <= 0) {
+            final Set<Tasker.Task> tasks = this.tasker.getTasksImmutable();
+
+            if (tasks.size() <= 0) {
                 Format.warn(sender, "no running tasks");
                 return;
             }
 
-            for (final Task task : this.tasks) {
+            for (final Tasker.Task task : tasks) {
                 // get owner name
                 final OfflinePlayer ownerPlayer = Bukkit.getOfflinePlayer(task.creator);
                 final String owner;
@@ -401,12 +499,18 @@ public class QuickCraftModule {
                 }
 
                 // get location string
-                final Location blockLocation = task.block.getLocation();
-                final String location = String.format("%d %d %d (%s)",
-                        blockLocation.getBlockX(), blockLocation.getBlockY(), blockLocation.getBlockY(),
-                        blockLocation.getWorld().getName());
+                final Location inLocation = task.inputBlock.getLocation();
+                final Location outLocation = task.outputBlock.getLocation();
 
-                Format.info(sender, "&8- &7" + location + "&r by &e" + owner + "&r id: &b" + task.id);
+                // create list item message
+                final StringBuilder bob = new StringBuilder();
+                bob.append("&8- &7").append(Util.simpleLocation(inLocation)).append("&r");
+                if (!inLocation.equals(outLocation)) {
+                    bob.append(" &8[&bo &7").append(Util.simpleLocation(outLocation)).append("&r&8]&r");
+                }
+                bob.append(" by &e").append(owner).append("&r id: &b").append(task.id);
+
+                Format.info(sender, bob.toString());
             }
         }
 
@@ -425,17 +529,13 @@ public class QuickCraftModule {
                 return;
             }
 
-            // find task by id
-            if (this.tasks.stream().noneMatch(t -> t.id == id)) {
+            if (this.tasker.removeTaskById(id)) {
+                Format.info(sender, "removed task");
+            } else {
                 Format.error(sender, "task not found");
-                return;
             }
-
-            // remove task
-            this.tasks.removeIf(t -> t.id == id);
-
-            Format.info(sender, "removed task");
         }
+
 
         @Override
         public boolean onCommand(
@@ -444,22 +544,36 @@ public class QuickCraftModule {
                 @NotNull String label,
                 @NotNull final String[] args
         ) {
+
+            // /qsbo doesn't require any arguments
+            if ("qsbo".equalsIgnoreCase(label)) {
+                if (!(sender instanceof final Player player)) {
+                    Format.error(sender, "this command is only intended for players");
+                    return true;
+                }
+                this.handleMarkOut(player);
+                return true;
+            }
+
+            // all other sub-commands require arguments
             if (args.length == 0) {
                 Format.info(sender, "/qs list");
                 Format.info(sender, "/qs stop <id>");
                 Format.info(sender, "/qsb <ticks> <top> <mid> <bot> <k=v...>");
+                Format.info(sender, "/qsbo");
                 return true;
             }
 
             // /qsb 3 aaa aaa aaa a=emerald
             if ("qsb".equalsIgnoreCase(label)) {
                 if (!(sender instanceof final Player player)) {
-                    Format.warn(sender, "this command is only intended for players");
+                    Format.error(sender, "this command is only intended for players");
                     return true;
                 }
                 this.handleBlock(player, args);
                 return true;
             }
+
 
             switch (args[0]) {
                 // /qs list
@@ -471,6 +585,13 @@ public class QuickCraftModule {
 
             return true;
         }
+
+        // clean up output data
+        @EventHandler
+        public void onQuit(final PlayerQuitEvent event) {
+            this.outputBlocks.remove(event.getPlayer().getUniqueId());
+        }
+
     }
 
 }
