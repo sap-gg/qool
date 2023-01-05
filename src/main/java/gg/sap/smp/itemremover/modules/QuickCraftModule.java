@@ -306,14 +306,14 @@ public class QuickCraftModule {
                 // ✨particles ✨
                 this.particlify(this.inputBlock, Particle.NOTE);
                 if (!this.inputBlock.equals(this.outputBlock)) {
-                    this.particlify(this.outputBlock, Particle.SPIT);
+                    this.particlify(this.outputBlock, Particle.END_ROD);
                 }
             }
 
             private void particlify(final Block block, final Particle particle) {
                 block.getWorld().spawnParticle(
                         particle,
-                        block.getLocation(),
+                        block.getLocation().toCenterLocation(),
                         1
                 );
             }

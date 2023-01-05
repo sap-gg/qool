@@ -17,6 +17,7 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.ShapedRecipe;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -34,6 +35,8 @@ public class SafariNetModule implements Listener {
     private final ItemStack safariNetItem;
     private final Set<EntityType> blacklistedEntityTypes;
 
+    private final Map<UUID, Long> catchTimeout = new HashMap<>();
+
     public SafariNetModule(final JavaPlugin plugin) {
         // create item
         this.safariNetItem = new ItemStack(Material.LEAD);
@@ -48,7 +51,7 @@ public class SafariNetModule implements Listener {
         // fill blacklist
         this.blacklistedEntityTypes = new HashSet<>(Arrays.asList(
                 EntityType.ENDER_DRAGON, EntityType.ARMOR_STAND,
-                EntityType.PLAYER
+                EntityType.PLAYER, EntityType.WITHER
         ));
 
         // create crafting recipe
@@ -129,7 +132,10 @@ public class SafariNetModule implements Listener {
         // un-alive entity
         entity.getWorld().spawnParticle(Particle.EXPLOSION_NORMAL, entity.getLocation(), 1);
         entity.remove();
+
+        this.catchTimeout.put(player.getUniqueId(), System.currentTimeMillis());
     }
+
 
     @EventHandler
     public void onInteract(final PlayerInteractEvent event) {
@@ -138,19 +144,13 @@ public class SafariNetModule implements Listener {
         }
         final Player player = event.getPlayer();
         final ItemStack stack = player.getInventory().getItem(event.getHand());
-        if (!stack.hasItemMeta()) {
-            return;
-        }
-        final PersistentDataContainer data = stack.getItemMeta().getPersistentDataContainer();
-        if (!data.has(KEY) || !data.has(ENTITY)) {
+        final Entity entity = this.parseEntityFromItem(stack, player.getWorld());
+        if (entity == null) {
             return;
         }
 
-        // deserialize entity from data
-        final byte[] entityBytes = data.get(ENTITY, PersistentDataType.BYTE_ARRAY);
-        final Entity entity = Bukkit.getUnsafe().deserializeEntity(entityBytes, player.getWorld());
-        if (entity == null) {
-            Format.error(player, "deserialized entity was null");
+        // check if timeout
+        if ((System.currentTimeMillis() - this.catchTimeout.getOrDefault(player.getUniqueId(), 0L)) < 1000) {
             return;
         }
 
@@ -164,7 +164,7 @@ public class SafariNetModule implements Listener {
         }
 
         // spawn entity
-        entity.spawnAt(event.getInteractionPoint(), CreatureSpawnEvent.SpawnReason.EGG);
+        entity.spawnAt(spawnLocation, CreatureSpawnEvent.SpawnReason.EGG);
         player.getWorld().spawnParticle(Particle.TOTEM, spawnLocation, 2);
 
         // remove item
@@ -174,6 +174,25 @@ public class SafariNetModule implements Listener {
             stack.setAmount(stack.getAmount() - 1);
             player.getInventory().setItem(event.getHand(), stack);
         }
+    }
+
+    @EventHandler
+    public void onQuit(final PlayerQuitEvent event) {
+        this.catchTimeout.remove(event.getPlayer().getUniqueId());
+    }
+
+    private Entity parseEntityFromItem(final ItemStack stack, final World world) {
+        if (!stack.hasItemMeta()) {
+            return null;
+        }
+        final PersistentDataContainer data = stack.getItemMeta().getPersistentDataContainer();
+        if (!data.has(KEY) || !data.has(ENTITY)) {
+            return null;
+        }
+
+        // deserialize entity from data
+        final byte[] entityBytes = data.get(ENTITY, PersistentDataType.BYTE_ARRAY);
+        return Bukkit.getUnsafe().deserializeEntity(entityBytes, world);
     }
 
     private static Component drawHealthBar(final double health, final double maxHealth) {

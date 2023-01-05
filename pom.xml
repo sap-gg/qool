@@ -6,7 +6,7 @@
 
     <groupId>gg.sap.smp</groupId>
     <artifactId>ItemRemover</artifactId>
-    <version>1.11-SNAPSHOT</version>
+    <version>1.11.1-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>ItemRemover</name>
