@@ -107,6 +107,10 @@ public class ExchangeCommand implements CommandExecutor, Listener {
 
             player.openInventory(inventory);
             targetPlayer.openInventory(inventory);
+
+            // remove requests
+            this.requests.remove(player.getUniqueId());
+            this.requests.remove(target);
             return true;
         }
 
