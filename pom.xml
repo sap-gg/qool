@@ -5,11 +5,11 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>gg.sap.smp</groupId>
-    <artifactId>ItemRemover</artifactId>
+    <artifactId>QooL</artifactId>
     <version>1.11.3-SNAPSHOT</version>
     <packaging>jar</packaging>
 
-    <name>ItemRemover</name>
+    <name>QooL</name>
 
     <description>remove some annoying laggy items with ease</description>
     <properties>

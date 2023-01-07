@@ -1,8 +1,8 @@
-package gg.sap.smp.itemremover.modules;
+package gg.sap.smp.qool.modules;
 
 import com.google.common.collect.ImmutableSet;
-import gg.sap.smp.itemremover.util.Format;
-import gg.sap.smp.itemremover.util.Util;
+import gg.sap.smp.qool.util.Format;
+import gg.sap.smp.qool.util.Util;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.Container;

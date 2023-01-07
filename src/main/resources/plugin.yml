@@ -1,9 +1,9 @@
-name: ItemRemover
+name: QooL
 version: '${project.version}'
-main: gg.sap.smp.itemremover.ItemRemover
+main: gg.sap.smp.qool.QoolPlugin
 api-version: 1.19
 authors: [ "d2a <hi@d2a.io>" ]
-description: remove some annoying laggy items with ease
+description: some qool improvements
 website: https://qwer.tz
 
 commands:

@@ -1,6 +1,6 @@
-package gg.sap.smp.itemremover.modules;
+package gg.sap.smp.qool.modules;
 
-import gg.sap.smp.itemremover.util.Format;
+import gg.sap.smp.qool.util.Format;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;

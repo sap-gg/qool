@@ -1,4 +1,4 @@
-package gg.sap.smp.itemremover.modules;
+package gg.sap.smp.qool.modules;
 
 import net.kyori.adventure.text.TextComponent;
 import org.bukkit.Material;

@@ -1,12 +1,12 @@
-package gg.sap.smp.itemremover;
+package gg.sap.smp.qool;
 
-import gg.sap.smp.itemremover.modules.*;
+import gg.sap.smp.qool.modules.*;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.Objects;
 
-public final class ItemRemover extends JavaPlugin {
+public final class QoolPlugin extends JavaPlugin {
 
     @Override
     public void onEnable() {

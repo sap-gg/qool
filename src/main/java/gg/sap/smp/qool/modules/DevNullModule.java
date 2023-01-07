@@ -1,8 +1,8 @@
-package gg.sap.smp.itemremover.modules;
+package gg.sap.smp.qool.modules;
 
-import gg.sap.smp.itemremover.util.Format;
-import gg.sap.smp.itemremover.util.LimitedStack;
-import gg.sap.smp.itemremover.util.Util;
+import gg.sap.smp.qool.util.Format;
+import gg.sap.smp.qool.util.LimitedStack;
+import gg.sap.smp.qool.util.Util;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.format.NamedTextColor;

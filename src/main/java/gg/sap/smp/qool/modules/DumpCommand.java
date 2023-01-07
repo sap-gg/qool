@@ -1,6 +1,6 @@
-package gg.sap.smp.itemremover.modules;
+package gg.sap.smp.qool.modules;
 
-import gg.sap.smp.itemremover.util.Format;
+import gg.sap.smp.qool.util.Format;
 import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.block.Block;
@@ -17,9 +17,9 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
-import static gg.sap.smp.itemremover.util.Format.MessageType;
-import static gg.sap.smp.itemremover.util.Util.enumGet;
-import static gg.sap.smp.itemremover.util.Util.enumJoin;
+import static gg.sap.smp.qool.util.Format.MessageType;
+import static gg.sap.smp.qool.util.Util.enumGet;
+import static gg.sap.smp.qool.util.Util.enumJoin;
 
 public class DumpCommand implements CommandExecutor {
 

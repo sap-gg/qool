@@ -1,4 +1,4 @@
-package gg.sap.smp.itemremover.modules;
+package gg.sap.smp.qool.modules;
 
 import org.bukkit.entity.Phantom;
 import org.bukkit.event.EventHandler;

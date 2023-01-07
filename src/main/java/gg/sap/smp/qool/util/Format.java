@@ -1,4 +1,4 @@
-package gg.sap.smp.itemremover.util;
+package gg.sap.smp.qool.util;
 
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;

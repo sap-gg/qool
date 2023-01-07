@@ -1,7 +1,7 @@
-package gg.sap.smp.itemremover.modules;
+package gg.sap.smp.qool.modules;
 
 import com.google.common.base.Strings;
-import gg.sap.smp.itemremover.util.Format;
+import gg.sap.smp.qool.util.Format;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.*;
