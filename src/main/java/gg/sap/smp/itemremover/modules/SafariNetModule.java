@@ -84,6 +84,12 @@ public class SafariNetModule implements Listener {
         // prevent unwanted behaviour
         event.setCancelled(true);
 
+        // ignore if already something in safari net
+        if (stack.getItemMeta().getPersistentDataContainer().has(ENTITY)) {
+            Format.warn(player, "you can't re-use this item");
+            return;
+        }
+
         // check if entity is blacklisted
         if (this.blacklistedEntityTypes.contains(entity.getType())) {
             Format.warn(player, "this entity is blacklisted");
@@ -111,6 +117,8 @@ public class SafariNetModule implements Listener {
             if (attribute != null) {
                 lore.add(SafariNetModule.drawHealthBar(entity.getHealth(), attribute.getValue()));
             }
+            // add random UUID to prevent any stacking
+            lore.add(Component.text(UUID.randomUUID().toString(), NamedTextColor.DARK_GRAY));
         }
 
         meta.lore(lore);
@@ -150,7 +158,8 @@ public class SafariNetModule implements Listener {
         }
 
         // check if timeout
-        if ((System.currentTimeMillis() - this.catchTimeout.getOrDefault(player.getUniqueId(), 0L)) < 1000) {
+        if ((System.currentTimeMillis() - this.catchTimeout.getOrDefault(player.getUniqueId(), 0L))
+                < 1000) {
             return;
         }
 
