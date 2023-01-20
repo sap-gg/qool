@@ -35,3 +35,7 @@ commands:
     aliases:
       - ex
     description: "Exchange items"
+  illegalitems:
+    description: "Illegal Items"
+    aliases:
+      - ii

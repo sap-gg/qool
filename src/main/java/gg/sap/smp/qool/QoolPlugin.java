@@ -1,5 +1,6 @@
 package gg.sap.smp.qool;
 
+import gg.sap.smp.qool.altar.Bootstrap;
 import gg.sap.smp.qool.modules.*;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -54,6 +55,9 @@ public final class QoolPlugin extends JavaPlugin {
         final ExchangeCommand exchange = new ExchangeCommand();
         Objects.requireNonNull(this.getCommand("exchange")).setExecutor(exchange);
         pluginManager.registerEvents(exchange, this);
+
+        // Altar
+        Bootstrap.init(this);
     }
 
 }
